@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Cognitive Gateway - Admin Console</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡</text></svg>">
+<style>
+:root { --bg: #0d1117; --surface: #161b22; --border: #30363d; --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --danger: #f85149; --success: #3fb950; --warn: #d29922; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; }
+h1 { font-size: 20px; font-weight: 600; color: var(--accent); }
+h2 { font-size: 16px; margin-bottom: 16px; color: var(--text); }
+nav { display: flex; gap: 4px; padding: 12px 24px 0; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; }
+nav button { background: none; border: none; color: var(--muted); padding: 8px 16px; cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap; }
+nav button:hover { color: var(--text); }
+nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+nav button.muted { opacity: 0.45; cursor: not-allowed; }
+nav button.muted:hover { color: var(--muted); }
+main { max-width: 960px; margin: 24px auto; padding: 0 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; margin-top: 12px; }
+input, select { width: 100%; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; font-family: inherit; }
+input:focus, select:focus { outline: none; border-color: var(--accent); }
+input[type="password"] { letter-spacing: 2px; }
+.inline { display: flex; gap: 12px; }
+.inline > div { flex: 1; }
+.btn { padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity 0.15s; }
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-warn { background: var(--warn); color: #000; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-group { display: flex; gap: 8px; margin-top: 16px; }
+.toast { position: fixed; top: 16px; right: 16px; padding: 12px 20px; border-radius: 6px; font-size: 14px; z-index: 999; animation: fadeIn 0.3s; }
+.toast.success { background: var(--success); color: #000; }
+.toast.error { background: var(--danger); color: #fff; }
+.toast.warn { background: var(--warn); color: #000; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 500; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.status-dot.online { background: var(--success); }
+.loading { color: var(--muted); padding: 16px; text-align: center; }
+.dashboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.dashboard .metric { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; text-align: center; }
+.dashboard .metric .value { font-size: 28px; font-weight: 700; color: var(--accent); }
+.dashboard .metric .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.dashboard .metric.warn .value { color: var(--warn); }
+.dashboard .metric.danger .value { color: var(--danger); }
+.dashboard .metric.success .value { color: var(--success); }
+.config-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 14px 18px; font-size: 13px; font-family: ui-monospace, monospace; line-height: 1.8; }
+.config-box span.key { color: var(--muted); }
+.config-box span.val { color: var(--success); font-weight: 500; }
+.btn-copy { background: none; border: none; cursor: pointer; font-size: 12px; padding: 0 2px; opacity: 0.5; transition: opacity 0.15s; vertical-align: middle; }
+.btn-copy:hover { opacity: 1; }
+.wip { text-align: center; padding: 60px 20px; color: var(--muted); }
+.wip h3 { font-size: 18px; margin-bottom: 8px; color: var(--warn); }
+.wip p { font-size: 13px; }
+</style>
+</head>
+<body>
+<header><h1>AI Cognitive Gateway — Admin Console</h1></header>
+<nav>
+  <button class="active" data-tab="overview">概览</button>
+  <button data-tab="local">本地模型</button>
+  <button data-tab="cloud">云端模型</button>
+  <button data-tab="apikeys">API Key</button>
+  <button data-tab="rules">治理规则</button>
+  <button data-tab="requests">请求来源</button>
+  <button data-tab="memory">记忆管理</button>
+  <button data-tab="audit">审计日志</button>
+  <button data-tab="cache">缓存管理</button>
+  <button data-tab="feedback">用户反馈</button>
+</nav>
+<main>
+  <section id="tab-overview">
+    <div class="card" style="margin-bottom:20px">
+      <h2>IDE 接入配置</h2>
+      <div class="config-box">
+        <div><span class="key">Base URL</span>    <span class="val" id="ov-api-base">-</span> <button class="btn-copy" onclick="copyOvhVal('ov-api-base')" title="复制">📋</button></div>
+        <div><span class="key">API Key</span>      <span class="val" id="ov-api-key">-</span> <button class="btn-copy" onclick="copyOvhVal('ov-api-key')" title="复制">📋</button></div>
+        <div><span class="key">Model</span>        <span class="val" id="ov-model">-</span> <button class="btn-copy" onclick="copyOvhVal('ov-model')" title="复制">📋</button></div>
+        <div><span class="key">控制台</span>      <span class="val" id="ov-console-url">-</span> <button class="btn-copy" onclick="copyOvhVal('ov-console-url')" title="复制">📋</button></div>
+        <div><span class="key">API 文档</span>    <span class="val" id="ov-docs-url">-</span> <button class="btn-copy" onclick="copyOvhVal('ov-docs-url')" title="复制">📋</button></div>
+      </div>
+    </div>
+
+    <div class="dashboard">
+      <div class="metric"><div class="value" id="ov-tokens">-</div><div class="label">Token 总量</div><div style="font-size:11px;color:var(--muted);margin-top:2px">入 <span id="ov-tokens-in">-</span> / 出 <span id="ov-tokens-out">-</span></div></div>
+      <div class="metric"><div class="value" id="ov-preprocess">-</div><div class="label">预处理次数</div></div>
+      <div class="metric"><div class="value" id="ov-memory">-</div><div class="label">记忆条目</div></div>
+      <div class="metric"><div class="value" id="ov-requests">-</div><div class="label">请求总量</div></div>
+      <div class="metric"><div class="value" id="ov-local-models">-</div><div class="label">本地可用模型</div></div>
+      <div class="metric"><div class="value" id="ov-cloud-models">-</div><div class="label">云端可用模型</div></div>
+      <div class="metric warn"><div class="value" id="ov-danger">-</div><div class="label">危险行为标记</div></div>
+      <div class="metric danger"><div class="value" id="ov-blocked">-</div><div class="label">拦截总量</div></div>
+      <div class="metric success"><div class="value" id="ov-cache-hits">-</div><div class="label">缓存条数</div></div>
+      <div class="metric"><div class="value" id="ov-feedback">-</div><div class="label">用户反馈</div><div style="font-size:11px;color:var(--muted);margin-top:2px">👍 <span id="ov-feedback-pos">-</span> / 👎 <span id="ov-feedback-neg">-</span></div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <h2>Token 用量趋势 (24h)</h2>
+      <div id="token-chart" style="display:flex;align-items:flex-end;gap:2px;height:120px;padding:4px 0;overflow-x:auto">
+        <div class="loading" style="width:100%">加载中...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>当前配置摘要</h2>
+      <div class="config-box">
+        <div><span class="key">本地 Provider</span> <span class="val" id="ov-local-prov">-</span>  <span class="key">默认模型</span> <span class="val" id="ov-local-model">-</span></div>
+        <div><span class="key">云端 Provider</span> <span class="val" id="ov-cloud-prov">-</span>  <span class="key">默认模型</span> <span class="val" id="ov-cloud-model">-</span></div>
+        <div><span class="key">规则引擎</span> <span class="val" id="ov-rules-count">-</span> 条规则  <span class="key">超时</span> <span class="val" id="ov-local-timeout">-</span>s / <span class="val" id="ov-cloud-timeout">-</span>s</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-local" style="display:none">
+    <div class="card">
+      <h2>本地模型配置</h2>
+      <div id="local-loading" class="loading">加载中...</div>
+      <form id="local-form" style="display:none">
+        <div class="inline">
+          <div><label>推理引擎</label><select name="provider" id="local-provider-select" onchange="onLocalProviderChange()"><option value="ollama">Ollama</option><option value="vllm">vLLM</option><option value="sglang">SGLang</option><option value="openai-compatible">OpenAI Compatible</option><option value="localai">LocalAI</option></select></div>
+          <div><label>API URL</label><input type="text" name="api_url" placeholder="http://localhost:11434"></div>
+        </div>
+        <div class="inline">
+          <div><label>默认模型</label><input type="text" name="default_model" id="local-default-model" placeholder="qwen2.5:3b"></div>
+          <div><label>超时 (秒)</label><input type="number" name="timeout_seconds" placeholder="5" min="1" max="120"></div>
+        </div>
+        <div class="inline">
+          <div><label>最大 Token</label><input type="number" name="max_tokens" placeholder="2048" min="1" max="32768"></div>
+          <div><label>API Key (可选)</label><input type="password" name="api_key" placeholder="如需要鉴权"></div>
+        </div>
+        <div class="btn-group">
+          <button type="submit" class="btn btn-primary">保存配置</button>
+          <span style="color:var(--muted);font-size:12px;align-self:center">配置保存后即时生效</span>
+        </div>
+      </form>
+      <div style="margin-top:16px;border-top:1px solid var(--accent);padding-top:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <h3 style="margin:0;font-size:14px">允许的本地模型</h3>
+          <button class="btn" style="padding:2px 8px;font-size:11px" onclick="refreshEngineModels()" id="btn-refresh-models">🔄 从推理引擎获取</button>
+        </div>
+        <div id="local-models-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          <span style="color:var(--muted);font-size:12px">加载中...</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="add-local-model-input" placeholder="手动添加模型名" style="flex:1;max-width:260px">
+          <button class="btn btn-primary" style="padding:2px 8px;font-size:11px" onclick="addLocalModel()">添加</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-cloud" style="display:none">
+    <div class="card">
+      <h2>云端模型配置</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">管理多个云端大模型，网关按意图自动调度。默认模型为调度优先目标。</p>
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:end">
+        <div style="flex:1"><label>默认模型</label><select id="cloud-default-select" style="font-size:14px" onchange="setCloudDefault()"></select></div>
+        <div><button class="btn btn-primary" onclick="showAddCloudModel()">添加模型</button></div>
+      </div>
+      <div id="add-cloud-card" style="display:none;background:var(--bg);border:1px solid var(--accent);border-radius:6px;padding:14px;margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent)" id="add-cloud-title">添加云端模型</div>
+        <div class="inline"><div><label>模型名</label><input id="add-cloud-name" placeholder="deepseek-v4-flash"></div><div><label>Provider</label><select id="add-cloud-prov"><option value="openai-compatible">openai-compatible</option><option value="ollama">ollama</option></select></div></div>
+        <div><label>API URL</label><input id="add-cloud-url" placeholder="https://api.deepseek.com"></div>
+        <div class="inline"><div><label>API Key</label><input type="password" id="add-cloud-key" placeholder="sk-..."></div><div><label>超时(秒)</label><input type="number" id="add-cloud-timeout" value="60" min="1" max="300"></div></div>
+        <div class="inline"><div><label>权重</label><input type="number" id="add-cloud-weight" value="1" min="1" max="10"></div><div><label>标签 (逗号分隔)</label><input id="add-cloud-tags" placeholder="fast, cheap, coding"></div></div>
+        <div class="btn-group"><button class="btn btn-primary" onclick="addCloudModel()">确认添加</button><button class="btn btn-warn" onclick="_editingCloudModel='';document.getElementById('add-cloud-card').style.display='none';document.getElementById('add-cloud-name').readOnly=false">取消</button></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">快捷添加预设：
+        <a href="#" onclick="quickAddCloud('deepseek')" style="color:var(--accent);margin-right:10px">DeepSeek</a>
+        <a href="#" onclick="quickAddCloud('aliyun')" style="color:var(--accent);margin-right:10px">阿里云百炼</a>
+        <a href="#" onclick="quickAddCloud('openai')" style="color:var(--accent)">OpenAI</a>
+      </div>
+      <div id="cloud-models-loading" class="loading">加载中...</div>
+      <table id="cloud-models-table" style="display:none"><thead><tr><th>模型名</th><th>Provider</th><th>权重</th><th>标签</th><th>状态</th><th>操作</th></tr></thead><tbody></tbody></table>
+      <div id="cloud-models-empty" style="display:none;color:var(--muted);padding:16px;text-align:center">暂无云端模型，请添加</div>
+    </div>
+  </section>
+
+  <section id="tab-apikeys" style="display:none">
+    <div class="card">
+      <h2>API Key 管理</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">每个 IDE 或 Agent 分配独立 Key，用于请求来源区分和用量追踪。</p>
+      <div style="display:flex;gap:12px;margin-bottom:12px">
+        <input id="key-alias-input" type="text" placeholder="别名（如 Cursor、Cline）" style="flex:1">
+        <button class="btn btn-primary" onclick="createApiKey()">生成 Key</button>
+      </div>
+      <div id="key-display" style="display:none;background:var(--bg);border:1px solid var(--success);border-radius:6px;padding:12px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="color:var(--success);font-weight:600;font-size:13px"> Key 已生成（仅显示一次，请立即复制）</span>
+          <button onclick="document.getElementById('key-display').style.display='none'" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">&times;</button>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <code id="key-display-text" style="flex:1;background:var(--surface);padding:8px 12px;border-radius:4px;font-size:13px;user-select:all;word-break:break-all"></code>
+          <button class="btn btn-primary" style="padding:6px 14px;font-size:12px;white-space:nowrap" onclick="copyKeyToClipboard()"> 复制</button>
+        </div>
+      </div>
+      <div id="key-list-loading" class="loading">加载中...</div>
+      <table id="key-table" style="display:none">
+        <thead><tr><th>别名</th><th>客户端 ID</th><th>Key</th><th>用量</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="key-list-empty" style="display:none;color:var(--muted);padding:16px;text-align:center">暂无 API Key，请创建</div>
+    </div>
+  </section>
+
+  <section id="tab-rules" style="display:none">
+    <div class="card">
+      <h2>治理规则</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">安全检测规则引擎。匹配的请求将被拦截或标记。</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn btn-primary" onclick="showAddRule()">添加规则</button>
+      </div>
+      <div id="add-rule-card" style="display:none;background:var(--bg);border:1px solid var(--accent);border-radius:6px;padding:14px;margin-bottom:16px">
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent)">添加治理规则</div>
+        <div class="inline"><div><label>规则类型</label><select id="rule-type"><option value="prompt_injection">注入攻击</option><option value="sensitive_data">敏感数据泄露</option><option value="harmful_content">有害内容</option><option value="custom">自定义</option></select></div><div><label>动作</label><select id="rule-action"><option value="block">拦截</option><option value="warn">告警</option></select></div></div>
+        <div><label>正则匹配模式</label><input id="rule-pattern" placeholder="\bpassword\b"></div>
+        <div><label>优先级（数值越大越优先）</label><input type="number" id="rule-priority" value="0"></div>
+        <div class="btn-group"><button class="btn btn-primary" onclick="addRule()">确认添加</button><button class="btn btn-warn" onclick="document.getElementById('add-rule-card').style.display='none'">取消</button></div>
+      </div>
+      <div id="rules-loading" class="loading">加载中...</div>
+      <table id="rules-table" style="display:none"><thead><tr><th>ID</th><th>类型</th><th>匹配模式</th><th>动作</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead><tbody></tbody></table>
+      <div id="rules-empty" style="display:none;color:var(--muted);padding:16px;text-align:center">暂无规则</div>
+    </div>
+  </section>
+
+  <section id="tab-requests" style="display:none">
+    <div class="card">
+      <h2>请求来源统计</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">按客户端 ID 聚合的近 24 小时请求流量。</p>
+      <div id="clients-loading" class="loading">加载中...</div>
+      <table id="clients-table" style="display:none"><thead><tr><th>客户端 ID</th><th>最后活跃</th><th>请求次数</th></tr></thead><tbody></tbody></table>
+      <div id="clients-empty" style="display:none;color:var(--muted);padding:16px;text-align:center">暂无请求来源</div>
+    </div>
+  </section>
+
+  <section id="tab-memory" style="display:none">
+    <div class="card">
+      <h2>记忆管理</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px">本地模型生成的用户记忆条目。支持分层检索、清理和压缩。</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <select id="mem-layer-filter" style="flex:0 0 160px" onchange="loadMemory()">
+          <option value="">全部层级</option>
+          <option value="user">用户层</option>
+          <option value="session">会话层</option>
+          <option value="agent">Agent 层</option>
+          <option value="governance">治理层</option>
+        </select>
+        <input id="mem-search" type="text" placeholder="搜索记忆内容..." style="flex:1" oninput="loadMemory()">
+        <button class="btn btn-danger" style="padding:6px 12px;font-size:12px" onclick="cleanMemory()">清理低价值</button>
+      </div>
+      <div id="mem-loading" class="loading">加载中...</div>
+      <table id="mem-table" style="display:none"><thead><tr><th>ID</th><th>意图</th><th>内容摘要</th><th>重要性</th><th>时间</th></tr></thead><tbody></tbody></table>
+      <div id="mem-empty" style="display:none;color:var(--muted);padding:16px;text-align:center">暂无记忆条目</div>
+      <div id="mem-stats" style="margin-top:12px;font-size:12px;color:var(--muted)"></div>
+    </div>
+  </section>
+
+  <section id="tab-audit" style="display:none">
+    <div class="card">
+      <h2>审计日志</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:12px">全链路不可变审计记录。支持按事件类型和时间筛选。</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <select id="audit-event-filter" style="flex:0 0 200px" onchange="loadAudit()">
+          <option value="">全部事件</option>
+          <option value="governance_decision">治理裁决</option>
+          <option value="model_routing">模型路由</option>
+          <option value="memory_operation">记忆操作</option>
+          <option value="capability_denied">能力拒绝</option>
+          <option value="override_activated">覆盖激活</option>
+        </select>
+        <button class="btn btn-primary" style="padding:0 12px;font-size:12px" onclick="loadAudit()">刷新</button>
+      </div>
+      <div id="audit-loading" class="loading">加载中...</div>
+      <table id="audit-table" style="display:none"><thead><tr><th>时间</th><th>事件</th><th>请求 ID</th><th>详情</th></tr></thead><tbody></tbody></table>
+      <div id="audit-empty" style="display:none;color:var(--muted);padding:16px;text-align:center">暂无审计记录</div>
+      <div id="audit-stats" style="margin-top:12px;font-size:12px;color:var(--muted)"></div>
+    </div>
+  </section>
+
+  <section id="tab-cache" style="display:none">
+    <div class="card">
+      <h2>请求缓存管理</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">相同输入命中缓存直接返回，减少云端 Token 消耗。TTL 默认 3600 秒。</p>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn btn-primary" onclick="loadCacheStats()">刷新统计</button>
+        <button class="btn btn-warn" onclick="invalidateCache()">清空全部缓存</button>
+        <button class="btn" onclick="cleanupCache()">清理过期缓存</button>
+      </div>
+      <div class="dashboard">
+        <div class="metric success"><div class="value" id="cache-total">-</div><div class="label">缓存条目</div></div>
+        <div class="metric"><div class="value" id="cache-ttl">3600s</div><div class="label">默认 TTL</div></div>
+      </div>
+      <div style="margin-top:16px;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:6px">
+        <h3 style="font-size:14px;margin-bottom:8px">手动清除特定模型缓存</h3>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="cache-model-input" placeholder="输入模型名（如 deepseek-chat）" style="flex:1">
+          <button class="btn btn-warn" style="white-space:nowrap" onclick="invalidateModelCache()">清除该模型缓存</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-feedback" style="display:none">
+    <div class="card">
+      <h2>用户反馈</h2>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">IDE/Agent 可通过 <code>POST /v1/feedback</code> 提交回答评价，系统自动调整记忆权重。</p>
+      <div class="dashboard">
+        <div class="metric success"><div class="value" id="fb-positive">-</div><div class="label">👍 好评</div></div>
+        <div class="metric danger"><div class="value" id="fb-negative">-</div><div class="label">👎 差评</div></div>
+        <div class="metric"><div class="value" id="fb-total">-</div><div class="label">总反馈</div></div>
+      </div>
+      <div id="fb-loading" class="loading">加载中...</div>
+      <table id="fb-table" style="display:none"><thead><tr><th>ID</th><th>请求 ID</th><th>评分</th><th>评论</th><th>原始输入</th><th>时间</th></tr></thead><tbody></tbody></table>
+      <div id="fb-empty" style="display:none;color:var(--muted);padding:16px;text-align:center">暂无反馈记录</div>
+    </div>
+  </section>
+</main>
+
+<script>
+const API = '/admin';
+let currentTab = 'overview';
+
+function showToast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function switchTab(name) {
+  const btn = document.querySelector('nav button[data-tab="' + name + '"]');
+  if (btn && btn.classList.contains('muted')) return;
+  currentTab = name;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  var sections = ['overview','local','cloud','apikeys','rules','requests','memory','audit','cache','feedback'];
+  sections.forEach(function(id) {
+    document.getElementById('tab-' + id).style.display = id === name ? '' : 'none';
+  });
+  if (name === 'overview') loadOverview();
+  if (name === 'local') loadLocalConfig();
+  if (name === 'cloud') loadCloudModels();
+  if (name === 'apikeys') loadApiKeys();
+  if (name === 'rules') loadRules();
+  if (name === 'requests') loadClients();
+  if (name === 'memory') loadMemory();
+  if (name === 'audit') loadAudit();
+  if (name === 'cache') loadCacheStats();
+  if (name === 'feedback') loadFeedback();
+}
+
+document.querySelectorAll('nav button').forEach(function(b) {
+  b.addEventListener('click', function() { switchTab(b.dataset.tab); });
+});
+
+async function loadLocalConfig() {
+  try {
+    var r = await fetch(API + '/config');
+    var cfg = await r.json();
+    var l = cfg.local || {};
+    document.getElementById('local-form').style.display = '';
+    document.getElementById('local-loading').style.display = 'none';
+    document.querySelector('#local-form [name="provider"]').value = l.provider || 'ollama';
+    document.querySelector('#local-form [name="api_url"]').value = l.api_url || '';
+    document.querySelector('#local-form [name="default_model"]').value = l.default_model || '';
+    document.querySelector('#local-form [name="timeout_seconds"]').value = l.timeout_seconds || 5;
+    document.querySelector('#local-form [name="max_tokens"]').value = l.max_tokens || 2048;
+    loadLocalAllowedModels();
+  } catch(e) { showToast('加载本地配置失败: ' + e.message, 'error'); }
+}
+
+async function loadLocalAllowedModels() {
+  try {
+    var r = await fetch(API + '/allowed-models');
+    var data = await r.json();
+    var allowed = data.local || [];
+    var listDiv = document.getElementById('local-models-list');
+    listDiv.innerHTML = '';
+    allowed.forEach(function(name) {
+      var chip = document.createElement('span');
+      chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--bg);border:1px solid var(--accent);border-radius:12px;font-size:12px';
+      chip.innerHTML = '<span>' + escapeHtml(name) + '</span><a href="#" onclick="removeLocalModel(\'' + escapeAttr(name) + '\');return false" style="color:var(--warn);text-decoration:none;font-size:14px;line-height:1">&times;</a>';
+      listDiv.appendChild(chip);
+    });
+  } catch(e) {}
+}
+
+async function refreshEngineModels() {
+  var btn = document.getElementById('btn-refresh-models');
+  btn.textContent = '加载中...'; btn.disabled = true;
+  try {
+    var r = await fetch(API + '/engines/models?refresh=true');
+    var data = await r.json();
+    var engineModels = data.engine_models || [];
+    var existingData = await fetch(API + '/allowed-models').then(function(r){return r.json()});
+    var currentAllowed = new Set(existingData.local || []);
+    if (engineModels.length > 0) {
+      var added = 0;
+      for (var i = 0; i < engineModels.length; i++) {
+        if (!currentAllowed.has(engineModels[i].id)) {
+          currentAllowed.add(engineModels[i].id);
+          added++;
+        }
+      }
+      if (added > 0) {
+        await fetch(API + '/allowed-models', {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({local: Array.from(currentAllowed), cloud: existingData.cloud || []})
+        });
+        showToast('已自动添加 ' + added + ' 个模型到白名单', 'success');
+      } else {
+        showToast('所有模型已在白名单中', 'success');
+      }
+      await loadLocalAllowedModels();
+    } else {
+      showToast('推理引擎未返回任何模型，请检查连接', 'error');
+    }
+  } catch(e) { showToast('获取模型列表失败: ' + e.message, 'error'); }
+  btn.textContent = '🔄 从推理引擎获取'; btn.disabled = false;
+}
+
+async function addLocalModel() {
+  var inp = document.getElementById('add-local-model-input');
+  var name = inp.value.trim();
+  if (!name) return;
+  try {
+    var existingData = await fetch(API + '/allowed-models').then(function(r){return r.json()});
+    var allowed = existingData.local || [];
+    if (allowed.indexOf(name) >= 0) { showToast('模型已在白名单中', 'error'); return; }
+    allowed.push(name);
+    await fetch(API + '/allowed-models', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({local: allowed, cloud: existingData.cloud || []})
+    });
+    inp.value = '';
+    await loadLocalAllowedModels();
+    showToast('已添加 ' + name, 'success');
+  } catch(e) { showToast('添加失败: ' + e.message, 'error'); }
+}
+
+async function removeLocalModel(name) {
+  try {
+    var existingData = await fetch(API + '/allowed-models').then(function(r){return r.json()});
+    var allowed = (existingData.local || []).filter(function(m) { return m !== name; });
+    await fetch(API + '/allowed-models', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({local: allowed, cloud: existingData.cloud || []})
+    });
+    await loadLocalAllowedModels();
+    showToast('已移除 ' + name, 'warn');
+  } catch(e) { showToast('移除失败: ' + e.message, 'error'); }
+}
+
+function onLocalProviderChange() {
+  var prov = document.getElementById('local-provider-select').value;
+  var urlInput = document.querySelector('#local-form [name="api_url"]');
+  if (prov === 'ollama' && (!urlInput.value || urlInput.value === 'http://localhost:8000/v1')) {
+    urlInput.value = 'http://localhost:11434';
+  }
+  if (prov === 'vllm' && !urlInput.value) {
+    urlInput.value = 'http://localhost:8000';
+  }
+}
+
+async function loadCloudModels() {
+  try {
+    var r = await fetch(API + '/config/cloud/models');
+    var data = await r.json();
+    var models = data.models || {};
+    var modelNames = Object.keys(models);
+
+    var sel = document.getElementById('cloud-default-select');
+    sel.innerHTML = '';
+    modelNames.forEach(function(n) { sel.innerHTML += '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>'; });
+
+    var defaultR = await fetch(API + '/config');
+    var defaultData = await defaultR.json();
+    var cloudCfg = defaultData.cloud || {};
+    sel.value = cloudCfg.default || modelNames[0] || '';
+
+    var tbody = document.querySelector('#cloud-models-table tbody');
+    tbody.innerHTML = '';
+    document.getElementById('cloud-models-loading').style.display = 'none';
+    if (modelNames.length === 0) {
+      document.getElementById('cloud-models-empty').style.display = '';
+      document.getElementById('cloud-models-table').style.display = 'none';
+      return;
+    }
+    document.getElementById('cloud-models-table').style.display = '';
+    document.getElementById('cloud-models-empty').style.display = 'none';
+    modelNames.forEach(function(name) {
+      var m = models[name];
+      var tags = (m.tags || []).join(', ');
+      var enabled = m.enabled !== false;
+      var isDefault = sel.value === name;
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + escapeHtml(name) + (isDefault ? ' <span style="color:var(--success);font-size:10px">默认</span>' : '') + '</td>' +
+        '<td style="font-size:12px">' + escapeHtml(m.provider || '') + '</td>' +
+        '<td>' + (m.weight || 1) + '</td>' +
+        '<td style="font-size:11px">' + escapeHtml(tags) + '</td>' +
+        '<td><span style="color:var(--' + (enabled ? 'success' : 'muted') + ')">' + (enabled ? '启用' : '禁用') + '</span></td>' +
+        '<td>' +
+        '<button class="btn btn-primary" style="padding:2px 6px;font-size:11px;margin-right:2px" onclick="editCloudModel(\'' + escapeAttr(name) + '\')">编辑</button>' +
+        '<button class="btn btn-warn" style="padding:2px 6px;font-size:11px" onclick="toggleCloudModel(\'' + escapeAttr(name) + '\',' + !enabled + ')">' + (enabled ? '禁用' : '启用') + '</button> ' +
+        '<button class="btn btn-danger" style="padding:2px 6px;font-size:11px" onclick="deleteCloudModel(\'' + escapeAttr(name) + '\')">删除</button>' +
+        '</td>';
+      tbody.appendChild(tr);
+    });
+  } catch(e) { showToast('加载模型列表失败: ' + e.message, 'error'); }
+}
+
+var _editingCloudModel = '';
+
+function showAddCloudModel() {
+  _editingCloudModel = '';
+  document.getElementById('add-cloud-title').textContent = '添加云端模型';
+  document.getElementById('add-cloud-card').style.display = '';
+}
+
+function editCloudModel(name) {
+  loadCloudModelsData().then(function(models) {
+    var m = (models || {})[name];
+    if (!m) { showToast('模型 ' + name + ' 未找到', 'error'); return; }
+    _editingCloudModel = name;
+    document.getElementById('add-cloud-title').textContent = '编辑: ' + name;
+    document.getElementById('add-cloud-card').style.display = '';
+    document.getElementById('add-cloud-name').value = name;
+    document.getElementById('add-cloud-name').readOnly = true;
+    document.getElementById('add-cloud-prov').value = m.provider || 'openai-compatible';
+    document.getElementById('add-cloud-url').value = m.api_url || '';
+    document.getElementById('add-cloud-key').value = m.api_key || '';
+    document.getElementById('add-cloud-timeout').value = m.timeout_seconds || 60;
+    document.getElementById('add-cloud-weight').value = m.weight || 1;
+    document.getElementById('add-cloud-tags').value = (m.tags || []).join(', ');
+  }).catch(function(e) { showToast('加载详情失败: ' + e.message, 'error'); });
+}
+
+function loadCloudModelsData() {
+  return fetch(API + '/config/cloud/models').then(function(r) { return r.json(); }).then(function(data) { return data.models || {}; });
+}
+
+async function addCloudModel() {
+  var name = document.getElementById('add-cloud-name').value.trim();
+  if (!name) { showToast('请输入模型名', 'error'); return; }
+  var tagsVal = document.getElementById('add-cloud-tags').value.trim();
+  var body = {
+    name: name,
+    provider: document.getElementById('add-cloud-prov').value,
+    api_url: document.getElementById('add-cloud-url').value,
+    api_key: document.getElementById('add-cloud-key').value,
+    timeout_seconds: parseInt(document.getElementById('add-cloud-timeout').value) || 60,
+    weight: parseInt(document.getElementById('add-cloud-weight').value) || 1,
+    tags: tagsVal ? tagsVal.split(',').map(function(t){return t.trim();}).filter(Boolean) : ['general']
+  };
+
+  try {
+    var method = _editingCloudModel ? 'PUT' : 'POST';
+    var url = API + '/config/cloud/models' + (_editingCloudModel ? '/' + encodeURIComponent(_editingCloudModel) : '');
+    var r = await fetch(url, { method: method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    _editingCloudModel = '';
+    document.getElementById('add-cloud-card').style.display = 'none';
+    ['name','url','key','timeout','weight','tags'].forEach(function(id) { document.getElementById('add-cloud-' + id).value = ''; });
+    document.getElementById('add-cloud-name').readOnly = false;
+    showToast(method === 'PUT' ? '模型已更新' : '模型已添加', 'success');
+    await loadCloudModels();
+  } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
+}
+
+function quickAddCloud(v) {
+  var presets = {
+    deepseek:  { name: 'deepseek-v4-flash', api_url: 'https://api.deepseek.com', timeout_seconds: 60, weight: 5, tags: 'fast, cheap, coding' },
+    aliyun:    { name: 'qwen-plus', api_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', timeout_seconds: 60, weight: 2, tags: 'chinese, writing' },
+    openai:    { name: 'gpt-4o-mini', api_url: 'https://api.openai.com/v1', timeout_seconds: 30, weight: 1, tags: 'general' }
+  };
+  var p = presets[v];
+  if (!p) return;
+  _editingCloudModel = '';
+  document.getElementById('add-cloud-title').textContent = '添加云端模型';
+  document.getElementById('add-cloud-name').readOnly = false;
+  document.getElementById('add-cloud-card').style.display = '';
+  document.getElementById('add-cloud-name').value = p.name;
+  document.getElementById('add-cloud-url').value = p.api_url || '';
+  document.getElementById('add-cloud-timeout').value = p.timeout_seconds;
+  document.getElementById('add-cloud-weight').value = p.weight;
+  document.getElementById('add-cloud-tags').value = p.tags;
+}
+
+async function setCloudDefault() {
+  var val = document.getElementById('cloud-default-select').value;
+  if (!val) return;
+  try {
+    var r = await fetch(API + '/config/cloud/default?name=' + encodeURIComponent(val), { method: 'POST' });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    showToast('默认模型已切换', 'success');
+    await loadCloudModels();
+  } catch(e) { showToast('切换失败: ' + e.message, 'error'); }
+}
+
+async function toggleCloudModel(name, enabled) {
+  try {
+    var r = await fetch(API + '/config/cloud/models/' + encodeURIComponent(name), {
+      method: 'PUT', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name: name, enabled: enabled, provider: 'openai-compatible', api_url: '', api_key: '', timeout_seconds: 60, weight: 1, tags: ['general']})
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    await loadCloudModels();
+    showToast(enabled ? '模型已启用' : '模型已禁用', 'success');
+  } catch(e) { showToast('操作失败: ' + e.message, 'error'); }
+}
+
+async function deleteCloudModel(name) {
+  if (!confirm('确定删除模型 \"' + name + '\"？')) return;
+  try {
+    var r = await fetch(API + '/config/cloud/models/' + encodeURIComponent(name), { method: 'DELETE' });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    await loadCloudModels();
+    showToast('模型已删除', 'warn');
+  } catch(e) { showToast('删除失败: ' + e.message, 'error'); }
+}
+
+async function loadCloudConfig() {}
+
+async function loadClients() {
+  try {
+    var r = await fetch(API + '/clients?hours=24');
+    var data = await r.json();
+    var tbody = document.querySelector('#clients-table tbody');
+    tbody.innerHTML = '';
+    document.getElementById('clients-loading').style.display = 'none';
+    if (data.clients.length === 0) {
+      document.getElementById('clients-empty').style.display = '';
+      document.getElementById('clients-table').style.display = 'none';
+      return;
+    }
+    document.getElementById('clients-table').style.display = '';
+    document.getElementById('clients-empty').style.display = 'none';
+    data.clients.forEach(function(c) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><span class="status-dot online"></span>' + escapeHtml(c.client_id) + '</td>' +
+        '<td>' + escapeHtml(c.last_seen || '-') + '</td>' +
+        '<td>' + c.request_count + '</td>';
+      tbody.appendChild(tr);
+    });
+  } catch(e) { showToast('加载请求来源失败: ' + e.message, 'error'); }
+}
+
+async function loadRules() {
+  try {
+    var r = await fetch(API + '/rules');
+    var data = await r.json();
+    var tbody = document.querySelector('#rules-table tbody');
+    tbody.innerHTML = '';
+    document.getElementById('rules-loading').style.display = 'none';
+    if (!data.rules || data.rules.length === 0) {
+      document.getElementById('rules-empty').style.display = '';
+      document.getElementById('rules-table').style.display = 'none';
+      return;
+    }
+    document.getElementById('rules-table').style.display = '';
+    document.getElementById('rules-empty').style.display = 'none';
+    data.rules.forEach(function(rule) {
+      var enabled = !!rule.enabled;
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + rule.id + '</td>' +
+        '<td style="font-size:12px">' + escapeHtml(rule.rule_type) + '</td>' +
+        '<td><code style="font-size:10px;word-break:break-all">' + escapeHtml(rule.pattern || '') + '</code></td>' +
+        '<td>' + (rule.action === 'block' ? '拦截' : '告警') + '</td>' +
+        '<td>' + (rule.priority || 0) + '</td>' +
+        '<td><span style="color:var(--' + (enabled ? 'success' : 'muted') + ')">' + (enabled ? '启用' : '禁用') + '</span></td>' +
+        '<td>' +
+        '<button class="btn btn-warn" style="padding:2px 6px;font-size:11px;margin-right:2px" onclick="toggleRule(' + rule.id + ',' + !enabled + ')">' + (enabled ? '禁用' : '启用') + '</button>' +
+        '<button class="btn btn-danger" style="padding:2px 6px;font-size:11px" onclick="deleteRule(' + rule.id + ')">删除</button>' +
+        '</td>';
+      tbody.appendChild(tr);
+    });
+  } catch(e) { showToast('加载治理规则失败: ' + e.message, 'error'); }
+}
+
+function showAddRule() { document.getElementById('add-rule-card').style.display = ''; }
+
+async function addRule() {
+  var rtype = document.getElementById('rule-type').value;
+  var pattern = document.getElementById('rule-pattern').value.trim();
+  if (!pattern) { showToast('请输入匹配模式', 'error'); return; }
+  try {
+    var r = await fetch(API + '/rules', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        rule_type: rtype,
+        pattern: pattern,
+        action: document.getElementById('rule-action').value,
+        priority: parseInt(document.getElementById('rule-priority').value) || 0
+      })
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    document.getElementById('add-rule-card').style.display = 'none';
+    document.getElementById('rule-pattern').value = '';
+    showToast('规则已添加', 'success');
+    await loadRules();
+  } catch(e) { showToast('添加失败: ' + e.message, 'error'); }
+}
+
+async function toggleRule(ruleId, enabled) {
+  try {
+    var r = await fetch(API + '/rules/' + ruleId + '/toggle?enabled=' + enabled, { method: 'PUT' });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    await loadRules();
+    showToast(enabled ? '规则已启用' : '规则已禁用', 'success');
+  } catch(e) { showToast('操作失败: ' + e.message, 'error'); }
+}
+
+async function deleteRule(ruleId) {
+  if (!confirm('确定删除规则 #' + ruleId + '？')) return;
+  try {
+    var r = await fetch(API + '/rules/' + ruleId, { method: 'DELETE' });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    await loadRules();
+    showToast('规则已删除', 'warn');
+  } catch(e) { showToast('删除失败: ' + e.message, 'error'); }
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  var el = document.createElement('span');
+  el.textContent = s;
+  return el.innerHTML;
+}
+
+document.getElementById('local-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  var fd = new FormData(e.target);
+  var data = {};
+  for (var pair of fd.entries()) { if (pair[1] !== '') data[pair[0]] = pair[1]; }
+  data.timeout_seconds = parseInt(data.timeout_seconds) || undefined;
+  data.max_tokens = parseInt(data.max_tokens) || undefined;
+  try {
+    var r = await fetch(API + '/config/local', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    showToast('本地模型配置已保存并生效', 'success');
+  } catch(err) { showToast('保存失败: ' + err.message, 'error'); }
+});
+
+async function loadOverview() {
+  try {
+    var r = await fetch(API + '/overview');
+    var d = await r.json();
+    var gi = d.gateway_info || {};
+    document.getElementById('ov-api-base').textContent = gi.api_base || '-';
+    document.getElementById('ov-api-key').textContent = gi.api_key_placeholder || '-';
+    document.getElementById('ov-model').textContent = gi.model_placeholder || '-';
+    document.getElementById('ov-console-url').textContent = gi.console_url || '-';
+    document.getElementById('ov-docs-url').textContent = gi.docs_url || '-';
+
+    var uv = d.metrics || {};
+    document.getElementById('ov-tokens').textContent = formatNum(uv.total_tokens);
+    document.getElementById('ov-tokens-in').textContent = formatNum(uv.total_tokens_in);
+    document.getElementById('ov-tokens-out').textContent = formatNum(uv.total_tokens_out);
+    document.getElementById('ov-preprocess').textContent = formatNum(uv.preprocess_calls);
+    document.getElementById('ov-memory').textContent = formatNum(uv.memory_entries);
+    document.getElementById('ov-requests').textContent = formatNum(uv.total_requests);
+    document.getElementById('ov-local-models').textContent = (d.models && d.models.local ? d.models.local.allowed_count : 0);
+    document.getElementById('ov-cloud-models').textContent = (d.models && d.models.cloud ? d.models.cloud.allowed_count : 0);
+    document.getElementById('ov-danger').textContent = formatNum(uv.high_risk_flags);
+    document.getElementById('ov-blocked').textContent = formatNum(uv.blocked_requests);
+
+    fetch(API + '/cache/stats').then(function(r){return r.json()}).then(function(cs){
+      document.getElementById('ov-cache-hits').textContent = formatNum(cs.total_entries || 0);
+    }).catch(function(){});
+
+    fetch(API + '/feedback/stats').then(function(r){return r.json()}).then(function(fs){
+      document.getElementById('ov-feedback').textContent = formatNum(fs.total || 0);
+      document.getElementById('ov-feedback-pos').textContent = formatNum(fs.positive || 0);
+      document.getElementById('ov-feedback-neg').textContent = formatNum(fs.negative || 0);
+    }).catch(function(){});
+
+    var cf = d.current_config || {};
+    var lc = cf.local || {};
+    var cc = cf.cloud || {};
+    document.getElementById('ov-local-prov').textContent = lc.provider || '-';
+    document.getElementById('ov-local-model').textContent = (d.models && d.models.local ? d.models.local.default : '-');
+    document.getElementById('ov-cloud-prov').textContent = cc.provider || '-';
+    document.getElementById('ov-cloud-model').textContent = (d.models && d.models.cloud ? d.models.cloud.default : '-');
+    document.getElementById('ov-local-timeout').textContent = lc.timeout_seconds || '-';
+    document.getElementById('ov-cloud-timeout').textContent = cc.timeout_seconds || '-';
+
+    var rulesResp = await fetch(API + '/rules');
+    var rulesData = await rulesResp.json();
+    document.getElementById('ov-rules-count').textContent = (rulesData.rules || []).length;
+    loadTokenChart();
+  } catch(e) { showToast('加载概览失败: ' + e.message, 'error'); }
+}
+
+async function loadTokenChart() {
+  try {
+    var r = await fetch(API + '/token-trend?hours=24');
+    var data = await r.json();
+    var points = data.data || [];
+    var chartDiv = document.getElementById('token-chart');
+    chartDiv.innerHTML = '';
+    if (points.length === 0) {
+      chartDiv.innerHTML = '<div style="color:var(--muted);padding:20px;text-align:center;width:100%">暂无数据</div>';
+      return;
+    }
+    var maxTokens = 1;
+    points.forEach(function(p) { if (p.tokens > maxTokens) maxTokens = p.tokens; });
+    points.forEach(function(p) {
+      var bar = document.createElement('div');
+      var height = Math.max(4, Math.round((p.tokens / maxTokens) * 110));
+      bar.style.cssText = 'flex:0 0 10px;height:' + height + 'px;background:var(--accent);border-radius:2px 2px 0 0;cursor:default;position:relative';
+      bar.title = p.hour + ' — ' + formatNum(p.tokens) + ' tokens';
+      bar.innerHTML = '<span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--muted);white-space:nowrap;display:none">' + formatNum(p.tokens) + '</span>';
+      bar.onmouseover = function() { this.querySelector('span').style.display = ''; };
+      bar.onmouseout = function() { this.querySelector('span').style.display = 'none'; };
+      chartDiv.appendChild(bar);
+    });
+  } catch(e) {}
+}
+
+async function loadApiKeys() {
+  try {
+    var r = await fetch(API + '/api-keys');
+    var data = await r.json();
+    var tbody = document.querySelector('#key-table tbody');
+    tbody.innerHTML = '';
+    document.getElementById('key-list-loading').style.display = 'none';
+    var keys = data.keys || [];
+    if (keys.length === 0) {
+      document.getElementById('key-list-empty').style.display = '';
+      document.getElementById('key-table').style.display = 'none';
+      return;
+    }
+    document.getElementById('key-table').style.display = '';
+    document.getElementById('key-list-empty').style.display = 'none';
+    keys.forEach(function(k) {
+      var tr = document.createElement('tr');
+      var statusClass = k.enabled ? 'success' : 'muted';
+      var statusText = k.enabled ? '启用' : '禁用';
+      var lastUsed = k.last_used ? k.last_used.substring(0, 16) : '-';
+      tr.innerHTML =
+        '<td>' + escapeHtml(k.alias) + '</td>' +
+        '<td><code style="font-size:12px">' + escapeHtml(k.client_id) + '</code></td>' +
+        '<td><code style="font-size:11px" title="' + escapeAttr(k.key_prefix) + '">' + escapeHtml(k.key_prefix) + '</code></td>' +
+        '<td>' + k.request_count + ' 次 / ' + lastUsed + '</td>' +
+        '<td><span style="color:var(--' + statusClass + ')">' + statusText + '</span></td>' +
+        '<td>' +
+        '<button class="btn btn-warn" style="padding:2px 8px;font-size:12px" onclick="toggleApiKey(\'' + escapeAttr(k.key_prefix) + '\',\'' + escapeAttr(k.key_hash) + '\',' + !k.enabled + ')">' + (k.enabled ? '禁用' : '启用') + '</button> ' +
+        '<button class="btn btn-danger" style="padding:2px 8px;font-size:12px" onclick="deleteApiKey(\'' + escapeAttr(k.key_prefix) + '\',\'' + escapeAttr(k.key_hash) + '\')">删除</button>' +
+        '</td>';
+      tbody.appendChild(tr);
+    });
+  } catch(e) { showToast('加载 API Keys 失败: ' + e.message, 'error'); }
+}
+
+async function createApiKey() {
+  var alias = document.getElementById('key-alias-input').value.trim();
+  if (!alias) { showToast('请输入别名', 'error'); return; }
+  try {
+    var r = await fetch(API + '/api-keys', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({alias: alias})
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    var data = await r.json();
+    document.getElementById('key-alias-input').value = '';
+    document.getElementById('key-display-text').textContent = data.api_key;
+    document.getElementById('key-display').style.display = '';
+    await loadApiKeys();
+    showToast('Key 已生成', 'success');
+  } catch(e) { showToast('创建失败: ' + e.message, 'error'); }
+}
+
+async function copyKeyToClipboard() {
+  var text = document.getElementById('key-display-text').textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('已复制到剪贴板', 'success');
+  } catch(e) {
+    var inp = document.createElement('textarea');
+    inp.value = text;
+    document.body.appendChild(inp);
+    inp.select();
+    document.execCommand('copy');
+    document.body.removeChild(inp);
+    showToast('已复制到剪贴板', 'success');
+  }
+}
+
+async function deleteApiKey(prefix, hash) {
+  if (!confirm('确定删除此 Key？所有使用此 Key 的客户端将无法连接。')) return;
+  try {
+    var r = await fetch(API + '/api-keys?key_prefix=' + encodeURIComponent(prefix) + '&key_hash=' + encodeURIComponent(hash), { method: 'DELETE' });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    await loadApiKeys();
+    showToast('Key 已删除', 'warn');
+  } catch(e) { showToast('删除失败: ' + e.message, 'error'); }
+}
+
+async function toggleApiKey(prefix, hash, enabled) {
+  try {
+    var r = await fetch(API + '/api-keys/toggle?key_prefix=' + encodeURIComponent(prefix) + '&key_hash=' + encodeURIComponent(hash) + '&enabled=' + enabled, { method: 'POST' });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    await loadApiKeys();
+    showToast(enabled ? 'Key 已启用' : 'Key 已禁用', 'success');
+  } catch(e) { showToast('操作失败: ' + e.message, 'error'); }
+}
+
+function escapeAttr(s) {
+  return (s || '').replace(/'/g, '\\\'').replace(/"/g, '&quot;');
+}
+
+function formatNum(n) {
+  if (n == null) return '0';
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return String(n);
+}
+
+async function loadMemory() {
+  try {
+    var layer = document.getElementById('mem-layer-filter').value;
+    var search = document.getElementById('mem-search').value.trim().toLowerCase();
+    var url = '/memory?limit=50';
+    if (layer) url += '&layer=' + encodeURIComponent(layer);
+    var r = await fetch(url);
+    var data = await r.json();
+    var items = data.items || [];
+    if (search) {
+      items = items.filter(function(it) {
+        return (it.content || '').toLowerCase().indexOf(search) >= 0;
+      });
+    }
+    var tbody = document.querySelector('#mem-table tbody');
+    tbody.innerHTML = '';
+    document.getElementById('mem-loading').style.display = 'none';
+    if (items.length === 0) {
+      document.getElementById('mem-empty').style.display = '';
+      document.getElementById('mem-table').style.display = 'none';
+    } else {
+      document.getElementById('mem-table').style.display = '';
+      document.getElementById('mem-empty').style.display = 'none';
+      items.forEach(function(it) {
+        var content = it.content || '';
+        var summary = '';
+        try {
+          var parsed = JSON.parse(content);
+          summary = (parsed.summary || content).substring(0, 120);
+        } catch(e) {
+          summary = content.substring(0, 120);
+        }
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + it.id + '</td>' +
+          '<td style="font-size:12px;color:var(--muted)">' + escapeHtml(it.layer) + '</td>' +
+          '<td>' + escapeHtml(summary) + '</td>' +
+          '<td>' + (it.importance ? (it.importance * 100).toFixed(0) + '%' : '-') + '</td>' +
+          '<td style="font-size:11px;color:var(--muted)">' + escapeHtml((it.created_at || '').substring(0,16)) + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+    document.getElementById('mem-stats').textContent = '共 ' + items.length + ' 条 (总计 ' + (data.total || 0) + ' 条)';
+  } catch(e) { showToast('加载记忆失败: ' + e.message, 'error'); }
+}
+
+async function cleanMemory() {
+  if (!confirm('清理重要性 < 20% 的低价值记忆条目？')) return;
+  try {
+    var r = await fetch('/memory/compress?threshold=0.2', { method: 'POST' });
+    if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+    showToast('低价值记忆已清理', 'success');
+    await loadMemory();
+  } catch(e) { showToast('清理失败: ' + e.message, 'error'); }
+}
+
+async function loadAudit() {
+  try {
+    var eventFilter = document.getElementById('audit-event-filter').value;
+    var url = '/audit?limit=30';
+    if (eventFilter) url += '&event_type=' + encodeURIComponent(eventFilter);
+    var r = await fetch(url);
+    var data = await r.json();
+    var items = data.items || [];
+    var tbody = document.querySelector('#audit-table tbody');
+    tbody.innerHTML = '';
+    document.getElementById('audit-loading').style.display = 'none';
+    if (items.length === 0) {
+      document.getElementById('audit-empty').style.display = '';
+      document.getElementById('audit-table').style.display = 'none';
+    } else {
+      document.getElementById('audit-table').style.display = '';
+      document.getElementById('audit-empty').style.display = 'none';
+      items.forEach(function(it) {
+        var detailStr = '-';
+        try {
+          var d = it.detail || {};
+          if (typeof d === 'string') d = JSON.parse(d);
+          var inner = d.detail || d;
+          if (inner.allowed !== undefined) {
+            detailStr = inner.allowed ? '放行' : ('拦截 ' + (inner.violations || []).join(','));
+          } else if (inner.local_model) {
+            detailStr = inner.local_model + ' → ' + inner.cloud_model;
+          } else if (inner.operation) {
+            detailStr = inner.operation + ' ' + (inner.memory_layer || '');
+          } else {
+            detailStr = JSON.stringify(inner).substring(0, 80);
+          }
+        } catch(e) { detailStr = '-'; }
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td style="font-size:11px">' + escapeHtml((it.created_at || '').substring(0,19)) + '</td>' +
+          '<td style="font-size:12px">' + escapeHtml(it.event_type) + '</td>' +
+          '<td><code style="font-size:10px">' + escapeHtml((it.request_id || '').substring(0,8)) + '</code></td>' +
+          '<td style="font-size:12px">' + escapeHtml(detailStr) + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+    document.getElementById('audit-stats').textContent = '共 ' + items.length + ' 条 (总计 ' + (data.total || 0) + ' 条)';
+  } catch(e) { showToast('加载审计日志失败: ' + e.message, 'error'); }
+}
+
+function copyOvhVal(id) {
+  var text = document.getElementById(id).textContent;
+  if (!text || text === '-') return;
+  navigator.clipboard.writeText(text).then(function() {
+    showToast('已复制: ' + text, 'success');
+  }).catch(function() {
+    var inp = document.createElement('textarea');
+    inp.value = text;
+    document.body.appendChild(inp);
+    inp.select();
+    document.execCommand('copy');
+    document.body.removeChild(inp);
+    showToast('已复制', 'success');
+  });
+}
+
+async function loadCacheStats() {
+  try {
+    var r = await fetch(API + '/cache/stats');
+    var data = await r.json();
+    document.getElementById('cache-total').textContent = formatNum(data.total_entries || 0);
+    document.getElementById('cache-ttl').textContent = (data.ttl_default || 3600) + 's';
+  } catch(e) { showToast('加载缓存统计失败: ' + e.message, 'error'); }
+}
+
+async function invalidateCache() {
+  if (!confirm('确认清空全部缓存？所有缓存条目将被删除。')) return;
+  try {
+    var r = await fetch(API + '/cache/invalidate', { method: 'POST' });
+    var data = await r.json();
+    showToast('已清除 ' + data.entries_removed + ' 条缓存', 'success');
+    loadCacheStats();
+  } catch(e) { showToast('清空缓存失败: ' + e.message, 'error'); }
+}
+
+async function invalidateModelCache() {
+  var model = document.getElementById('cache-model-input').value.trim();
+  if (!model) { showToast('请输入模型名', 'error'); return; }
+  try {
+    var r = await fetch(API + '/cache/invalidate?model_name=' + encodeURIComponent(model), { method: 'POST' });
+    var data = await r.json();
+    showToast('已清除模型 ' + model + ' 的 ' + data.entries_removed + ' 条缓存', 'success');
+    loadCacheStats();
+  } catch(e) { showToast('清除失败: ' + e.message, 'error'); }
+}
+
+async function cleanupCache() {
+  try {
+    await fetch(API + '/cache/cleanup', { method: 'POST' });
+    showToast('已清理过期缓存', 'success');
+    loadCacheStats();
+  } catch(e) { showToast('清理失败: ' + e.message, 'error'); }
+}
+
+async function loadFeedback() {
+  try {
+    var statsR = await fetch(API + '/feedback/stats');
+    var stats = await statsR.json();
+    document.getElementById('fb-total').textContent = formatNum(stats.total || 0);
+    document.getElementById('fb-positive').textContent = formatNum(stats.positive || 0);
+    document.getElementById('fb-negative').textContent = formatNum(stats.negative || 0);
+
+    var r = await fetch(API + '/feedback?limit=50');
+    var data = await r.json();
+    var items = data.items || [];
+    document.getElementById('fb-loading').style.display = 'none';
+    if (items.length === 0) {
+      document.getElementById('fb-empty').style.display = '';
+      document.getElementById('fb-table').style.display = 'none';
+      return;
+    }
+    document.getElementById('fb-table').style.display = '';
+    document.getElementById('fb-empty').style.display = 'none';
+    var tbody = document.querySelector('#fb-table tbody');
+    tbody.innerHTML = '';
+    items.forEach(function(item) {
+      var ratingHtml = item.rating > 0 ? '<span style="color:var(--success)">👍 好评</span>' : (item.rating < 0 ? '<span style="color:var(--danger)">👎 差评</span>' : '<span style="color:var(--muted)">-</span>');
+      var inputPreview = (item.user_input_raw || '').substring(0, 80);
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + item.id + '</td>' +
+        '<td style="font-size:11px">' + escapeHtml((item.request_id || '').substring(0, 12) + '...') + '</td>' +
+        '<td>' + ratingHtml + '</td>' +
+        '<td style="font-size:12px">' + escapeHtml(item.comment || '') + '</td>' +
+        '<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeAttr(item.user_input_raw || '') + '">' + escapeHtml(inputPreview) + '</td>' +
+        '<td style="font-size:11px">' + (item.created_at || '') + '</td>';
+      tbody.appendChild(tr);
+    });
+  } catch(e) { showToast('加载反馈失败: ' + e.message, 'error'); }
+}
+
+loadOverview();
+</script>
+</body>
+</html>
