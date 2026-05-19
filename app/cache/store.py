@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 import time
 
 from app.core.database import get_connection
@@ -8,12 +9,40 @@ from app.core.logging import logger
 DEFAULT_CACHE_TTL = 3600
 
 
+def _normalize_text(text: str) -> str:
+    """缓存 key 归一化：去首尾空白、小写、合并多余空格、去首尾常见标点。
+
+    使 'Hello!' 和 'hello' 命中同一个缓存。
+    """
+    text = text.strip().lower()
+    text = re.sub(r'\s+', ' ', text)
+    text = text.strip(' \t\n\r!?.,;:。？！，、；：')
+    return text
+
+
+def _normalize_messages(messages: list[dict] | None) -> list[dict] | None:
+    """对 messages 中的 content 做归一化。"""
+    if not messages:
+        return messages
+    result = []
+    for m in messages:
+        content = m.get("content", "")
+        if isinstance(content, str):
+            content = _normalize_text(content)
+        elif isinstance(content, list):
+            content = [_normalize_text(c) if isinstance(c, str) else c for c in content]
+        result.append({"role": m.get("role", ""), "content": content})
+    return result
+
+
 def _hash_key(user_input: str, model_name: str, messages: list[dict] | None = None, temperature: float = 0.7) -> str:
+    normalized_input = _normalize_text(user_input)
+    normalized_msgs = _normalize_messages(messages)
     raw = json.dumps(
         {
-            "input": user_input,
+            "input": normalized_input,
             "model": model_name,
-            "messages": messages or [],
+            "messages": normalized_msgs or [],
             "temperature": temperature,
         },
         sort_keys=True,

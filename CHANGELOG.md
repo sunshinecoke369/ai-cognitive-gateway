@@ -1,5 +1,92 @@
 # Changelog
 
+## v1.4.0 — 2026-05-18 — O1: Docker Packaging
+
+### Added
+- `Dockerfile` — Python 3.12-slim 基础镜像，含 healthcheck
+- `docker-compose.yml` — 独立运行网关（mock 模式），零外部依赖
+- `docker-compose.ollama.yml` — 可选 Ollama overlay，nvidia GPU 支持
+- `.dockerignore` — 排除 __pycache__/ .venv/ data/ logs/ 等
+
+### Infrastructure
+- 部署方式: `docker compose up -d --build` 替代 `sync_to_wsl.sh + systemctl`
+- 开发模式: `docker compose -f docker-compose.yml -f docker-compose.ollama.yml up -d`
+- Provider 解耦: 网关可独立运行（mock），Ollama 为可选叠加层
+
+## v1.3.3 — 2026-05-18 — V4 + Decoupling Principle
+
+### Added
+- `docs/engineering-roadmap.md` — ADR-014 Provider 解耦合原则
+- P3 O1 Docker 方案改为解耦式架构（Gateway 独立容器，Ollama 可选 overlay）
+- 架构原则文档化：BaseProvider 接口不绑定任何具体引擎
+
+### Changed
+- `app/cache/store.py` — `_normalize_text()` 缓存 key 归一化（小写/去标点/合并空格）
+
+## v1.3.3 — 2026-05-18 — V4: Semantic Cache Normalization
+
+### Changed
+- `app/cache/store.py` — `_normalize_text()` 缓存 key 归一化（小写/去标点/合并空格）
+- `_hash_key()` 写入和查询使用归一化后的输入，`'Hello!'` 和 `'hello'` 命中同一缓存
+- `_normalize_messages()` — messages 中的 content 也做归一化
+
+### Performance
+- 预计提升缓存命中率 15-30%（取决于客户端输入一致性）
+
+## v1.3.2 — 2026-05-18 — V1: Phase Timing Metrics
+
+### Added
+- `app/gateway/engine.py` — `_log_phase_timing()` 闭包函数，记录每个阶段的耗时
+- `perf:phase_timing` 结构化日志（governance / local_preprocess / prompt_build / cloud_schedule / cloud_generate / persist）
+- `process_request` + `process_request_stream` 双函数均支持 phase timing
+
+### Observability
+- 每个请求输出 6 个时间戳点，可精确分析网关瓶颈
+- 结合 V2 连接池优化后，可验证延迟改善效果
+
+## v1.3.1 — 2026-05-18 — V2: HTTP Connection Pool
+
+### Changed
+- `app/providers/client.py` (new) — 全局 httpx.AsyncClient（HTTP/2 + keepalive 连接池）
+- `app/providers/ollama.py` — `_call_ollama_chat/generate` 改用全局客户端，timeout 改按请求传参
+- `app/providers/openai_compatible.py` — `_call_api` + `generate_stream` 改用全局客户端
+
+### Performance
+- 预计每请求节省 50-200ms（省去 DNS 解析 + TCP 握手 + TLS 握手）
+- 连接池上限 20 连接，keepalive 10 连接，30s 过期
+- 支持 HTTP/2 多路复用
+
+## v1.3.0 — 2026-05-18 — Performance Strategy Established
+
+### Added
+- `docs/engineering-roadmap.md` — 新增 **P4 Performance & Observability** 阶段（5 项任务）
+- 性能架构声明（延迟分布分析、不换语言的决策依据）
+- 性能风险登记 R9-R12
+- ADR-013: 性能优先优化缓存与连接池，不换语言
+
+### Tasks planned (P4)
+- V1: 请求级耗时指标 phase timing
+- V2: httpx 全局连接池复用（HTTP/2 + keepalive）
+- V3: Prometheus /metrics 端点
+- V4: 语义缓存 key 归一化
+- V5: 性能基线基准测试
+
+## v1.2.2 — 2026-05-18 — Data Volume Cleanup + Git Init
+
+### Changed
+- `.gitignore` — `data/*` + `logs/*` 全量排除，仅保留 `.gitkeep`
+- `sync_to_wsl.sh` — 简化排除规则匹配 `.gitignore`
+- `docs/engineering-roadmap.md` — 更新至 v1.2（进度 17/28 + Git 完成）
+
+### Fixed
+- **D1** — 删除 `L:\` 根目录残留的 `data/api_keys.json` 和 `logs/gateway.log`
+- **D2** — `allowed_models.json` 中 `gemma4:e4b` 从 cloud 移至 local
+- **D3** — 代码与运行时数据隔离（`.gitignore` + sync 双重保障）
+
+### Infrastructure
+- Git 初始化：58 文件，8517 行 → `github.com/sunshinecoke369/ai-cognitive-gateway`
+- 推送方式：SSH (ed25519)
+
 ## v1.2.1 — 2026-05-18 — Engineering P0+P1
 
 ### Added

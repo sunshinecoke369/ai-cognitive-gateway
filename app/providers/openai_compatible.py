@@ -5,6 +5,7 @@ import re
 import httpx
 
 from app.providers.base import BaseProvider, LocalModelOutput, CloudModelResponse
+from app.providers.client import get_http_client
 from app.admin.config_manager import resolve_runtime_cloud_config, get_cloud_models
 from app.core.logging import logger
 
@@ -33,14 +34,14 @@ class OpenAICompatibleProvider(BaseProvider):
             "max_tokens": 2048,
         }
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                resp = await client.post(url, json=payload, headers=headers)
-                resp.raise_for_status()
-                data = resp.json()
-                choices = data.get("choices", [])
-                if choices:
-                    return choices[0].get("message", {}).get("content", "")
-                return None
+            client = get_http_client()
+            resp = await client.post(url, json=payload, headers=headers, timeout=timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            choices = data.get("choices", [])
+            if choices:
+                return choices[0].get("message", {}).get("content", "")
+            return None
         except httpx.TimeoutException:
             logger.warning("openai-compatible request timed out", extra={"model": model_name, "url": url, "timeout": timeout})
             return "[TIMEOUT]"
@@ -208,9 +209,9 @@ class OpenAICompatibleProvider(BaseProvider):
         tokens_out = 0
 
         try:
-            async with httpx.AsyncClient(timeout=httpx.Timeout(timeout, connect=15.0)) as client:
-                async with client.stream("POST", url, json=payload, headers=headers) as resp:
-                    resp.raise_for_status()
+            client = get_http_client()
+            async with client.stream("POST", url, json=payload, headers=headers, timeout=httpx.Timeout(timeout, connect=15.0)) as resp:
+                resp.raise_for_status()
                     async for line in resp.aiter_lines():
                         if not line or not line.startswith("data:"):
                             continue

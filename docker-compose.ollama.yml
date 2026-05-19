@@ -1,0 +1,41 @@
+version: "3.8"
+
+# =============================================================================
+# AI Cognitive Gateway — Ollama 本地模型 Overlay
+#
+# 叠加此配置启用本地模型预处理能力。
+# 使用方式:
+#   docker compose -f docker-compose.yml -f docker-compose.ollama.yml up -d
+#
+# 首次启动后需拉取模型:
+#   docker exec ollama ollama pull qwen2.5:3b-instruct-q4_K_M
+# =============================================================================
+
+services:
+  gateway:
+    environment:
+      - LOCAL_MODEL_MODE=ollama
+      - OLLAMA_URL=http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_started
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # GPU 支持（需安装 nvidia-container-toolkit）
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  ollama_data:

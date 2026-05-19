@@ -1,11 +1,14 @@
 # AI Cognitive Gateway — 工程化进度方案
 
-> **文档版本**: v1.1
+> **文档版本**: v1.5
 > **创建日期**: 2026-05-18
 > **最后更新**: 2026-05-18
 > **P0 状态**: ✅ 已完成（7 项）
 > **P1 状态**: ✅ 已完成（6 项）
-> **当前阶段**: P2 待开始
+> **D 系列**: ✅ D1/D2/D3 全部解决
+> **Git 初始化**: ✅ GitHub 已推送（58 文件，8517 行）
+> **P4 状态**: ✅ V2 完成中（1/5 — httpx 连接池）
+> **当前阶段**: P4 V2 完成，剩余可选
 > **覆盖范围**: Windows 数据卷（L:） + WSL Ubuntu 运行时 + Ollama 本地模型
 
 ---
@@ -40,18 +43,19 @@ curl http://localhost:8000/chat -X POST \
 tail -10 /tmp/gateway.log | grep phase
 ```
 
-### Git 初始化（上传 GitHub 前）
+### Git 初始化 ✅ 已完成
+
+**仓库**: `git@github.com:sunshinecoke369/ai-cognitive-gateway.git`
+**首次提交**: 58 文件，8517 行，v1.2.1
+**推送方式**: SSH（ed25519）
+
+后续每次功能完成一个可独立验证的节点后：
 
 ```bash
-# 在 L 盘路径执行（Windows 或 WSL 均可）
-cd /mnt/l/AI\ Cognitive\ Operating\ System/ai-cognitive-gateway
-git init
+cd /root/ai-cognitive-gateway
 git add -A
-git commit -m "Initial commit: AI Cognitive Gateway v1.2"
-
-# 关联远程仓库（GitHub）
-git remote add origin https://github.com/your-org/ai-cognitive-gateway.git
-git push -u origin main
+git commit -m "简短描述改动内容"
+git push
 ```
 
 ### .gitignore 当前状态
@@ -66,15 +70,18 @@ git push -u origin main
 |:----:|------|:------:|:----:|:--------:|:--------:|
 | **P0** | Quick Wins | 7 项 | ✅ 已完成 | 2 天 | 1 天 |
 | **P1** | Foundation Hardening | 6 项 | ✅ 已完成 | 5 天 | 1 天 |
+| **D** | 数据卷清理 | 3 项 | ✅ 已完成 | — | — |
+| **G** | Git 初始化 + GitHub | 1 项 | ✅ 已完成 | 30min | 30min |
 | **P2** | Architecture Evolution | 6 项 | ⏳ 待开始 | 8 天 | — |
-| **P3** | Platform Readiness | 5 项 | ⏳ 待开始 | 5 天 | — |
-| | **合计** | **24 项** | **13/24** | **20 天** | **2 天** |
+| **P3** | Platform Readiness | 4 项 | ✅ O1 完成（1/4） | 5 天 | — |
+| **P4** | Performance & Observability | 5 项 | ✅ V1/V2/V4 完成 | 6 天 | — |
+| | **合计** | **32 项** | **20/32** | **26 天** | **2 天** |
 
 ```
-Week 1                        Week 2-4
-████████████████████████████████████████████████████████
-████ P0 (done) ████ P1 (done) ████ P2 待开始 ████ P3 待开始 ██
-                               ████ (P2 与 P3 可并行推进) ████
+Week 1                        Week 2-4                    Week 5
+████████████████████████████████████████████████████████████████████
+████ P0 P1 (done) ████ P2 架构 ████ P3 运维 ████ P4 性能与可观测 ██
+                        ████ (P2 P3 P4 可部分并行) ████
 ```
 
 ---
@@ -159,24 +166,268 @@ Week 1                        Week 2-4
 
 ---
 
-## 五、Phase 3 — Platform Readiness（待开始）
+## 五、Phase 3 — Platform Readiness（进行中）
 
 > **目标**: 补齐可运维性短板。
-> **前提**: P1 全部完成。与 P2 可并行。
+> **前提**: P1 全部完成。P3 与 P2 / P4 可并行。
+> **进度**: ✅ O1 Docker | ⏳ O2 日志轮转 / O3 pyproject.toml / O4 CORS
+
+### 架构原则：Provider 解耦合
+
+本地模型框架与网关核心**不强绑定任何特定引擎**。当前支持的 Provider：
+
+| Provider | 用途 | 适用场景 |
+|----------|:----:|----------|
+| `mock` | 无模型模式 | 开发/测试，零依赖 |
+| `ollama` | 本地模型 | Ollama 运行时的本地预处理 |
+| `openai-compatible` | 云端+本地 | DeepSeek / Qwen / OpenAI / vLLM / SGLang / LocalAI |
+
+网关通过 `app/providers/registry.py` 在运行时按配置选择 Provider，新增 Provider 只需实现 `BaseProvider` 接口。此设计在 Docker 打包时应继续保持——**Ollama 是可选依赖，非必须组件**。
 
 ### 任务清单
 
 | # | 任务 | 类型 | 负责模块 | 预估工时 | 依赖 |
 |---|------|:----:|----------|:--------:|:----:|
-| O1 | Docker 打包 | 运维 | 项目根目录 (Dockerfile) | 6h | — |
+| O1 | Docker 打包（解耦架构） | 运维 | 项目根目录 | 6h | — | ✅ |
 | O2 | 日志轮转配置 | 运维 | WSL `/etc/logrotate.d/` | 1h | — |
 | O3 | `pyproject.toml` + 依赖分组 | 工程化 | 项目根目录 (新文件) | 2h | — |
 | O4 | CORS 配置 | 功能 | `app/api/routes.py` | 30min | — |
-| O5 | Git 初始化 + 首次 Commit | 工程化 | 项目根目录 | 30min | — |
+
+### O1 详细方案：解耦式 Docker 打包
+
+与常见的"把所有服务塞一个 compose 文件"不同，本项目的 Docker 架构强调**可选依赖**：
+
+```
+┌─────────────────────────┐
+│  Gateway Container      │ ← 唯一必需容器
+│  - FastAPI + uvicorn     │
+│  - 无本地模型也能运行     │    LOCAL_MODEL_MODE=mock → 独立运行
+│  - 依赖: pip install     │
+└─────────┬───────────────┘
+          │
+          ├── (可选) Ollama Container ── 本地预处理
+          │     image: ollama/ollama
+          │     mount: ollama_data (模型权重持久化)
+          │
+          └── (可选) 外部 API ── 云端生成
+                DeepSeek / Qwen / OpenAI / vLLM
+```
+
+**Dockerfile**：
+```dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+VOLUME ["/app/data", "/app/logs"]
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -f http://localhost:8000/health || exit 1
+EXPOSE 8000
+CMD ["python", "main.py", "serve"]
+```
+
+**docker-compose.yml**（仅网关，独立运行）：
+```yaml
+version: "3.8"
+services:
+  gateway:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - LOCAL_MODEL_MODE=mock
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+```
+
+**扩展 docker-compose.ollama.yml**（叠加 Ollama 支持）：
+```yaml
+# 使用方式: docker compose -f docker-compose.yml -f docker-compose.ollama.yml up -d
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  ollama_data:
+```
+
+**设计要点**：
+- `docker-compose.yml` 单独运行网关，零外部依赖（`mock` 模式）
+- `docker-compose.ollama.yml` 通过 `docker compose -f` 叠加，按需扩展
+- 不捆绑 Ollama → 用户可选择本地/云端/混合模式
+- 迁移方式：`git pull && docker compose up -d --build` 替代 `sync_to_wsl.sh`
 
 ---
 
-## 六、风险登记册（更新于 2026-05-18）
+## 六、Phase 4 — Performance & Observability（进行中）
+
+> **目标**: 建立可量化的性能基线 + 可观察性基础设施，确保网关效率可追踪、可优化。
+> **前提**: 不依赖 P2/P3，可与 P2/P3 并行。
+> **进度**: ✅ V2 连接池 | ✅ V1 phase timing | ✅ V4 缓存归一化 | ⏳ V3/V5
+
+### 性能架构声明
+
+网关的延迟分布特征（实测数据）：
+
+```
+总延迟 3.5s (典型值)
+  ├── Police 规则检查    <1ms     (0%)    CPU 密集型
+  ├── 本地模型预处理     ~500ms   (15%)   I/O 密集型（Ollama API 调用）
+  ├── 调度器             <1ms     (0%)    CPU 密集型
+  ├── 云端生成           2.5-3s   (80%)   网络 I/O 密集
+  └── 记忆/缓存/审计     <10ms    (0%)    I/O 密集型（SQLite）
+```
+
+**核心结论**: 80% 延迟在云端 API 的网络调用。Python 自身的处理时间占比不到 5%。
+
+因此：
+
+- ❌ **现阶段不换语言**（Go/Rust 最多优化 5%，但开发成本翻数倍）
+- ✅ **优先优化缓存命中率、连接复用、可观察性**（这三个方向 ROI 最高）
+
+### 任务清单
+
+| # | 任务 | 类型 | 负责模块 | 预估工时 | 说明 |
+|:--:|------|:----:|----------|:--------:|------|
+| V1 | 请求级耗时指标（phase timing） | 可观察性 | `app/gateway/engine.py` | 2h | 每个 phase 耗时导出到结构化日志，可用于后续 Grafana 看板 |
+| V2 | httpx 全局连接池复用 | 性能 | `app/providers/` | 3h | 全局 `httpx.AsyncClient` + HTTP/2 + keepalive，省 50-200ms/请求 |
+| V3 | Prometheus metrics 端点 | 可观察性 | `app/core/metrics.py` (新) | 4h | `/metrics` 端点导出请求数/延迟分布/错误率 |
+| V4 | 语义缓存优化 | 性能 | `app/cache/store.py` | 4h | 缓存 key 归一化（大小写/空格/标点），提升命中率 |
+| V5 | 性能基线基准测试 | 工具 | `tests/benchmark/` (新) | 6h | `locustfile.py` 或 `pytest-benchmark`，可重复的性能基线 |
+
+---
+
+### 详细方案
+
+#### V1：phase timing
+
+当前阶段日志只有标记没有耗时。在每个 phase 前后记录时间戳：
+
+```python
+# engine.py 中新增
+_phase_times: dict[str, float] = {}
+
+def _phase_start(name: str):
+    _phase_times[name] = time.perf_counter()
+
+def _phase_end(name: str):
+    elapsed = (time.perf_counter() - _phase_times.get(name, 0)) * 1000
+    logger.info("perf:phase_timing", extra={"phase": name, "latency_ms": round(elapsed, 2)})
+    return elapsed
+```
+
+输出示例：
+```json
+{"phase":"local_preprocess","latency_ms":423.15}
+{"phase":"cloud_generate","latency_ms":2850.33}
+```
+
+#### V2：httpx 全局连接池
+
+```python
+# app/providers/client.py — 新文件
+import httpx
+
+_client: httpx.AsyncClient | None = None
+
+def get_http_client() -> httpx.AsyncClient:
+    global _client
+    if _client is None:
+        _client = httpx.AsyncClient(
+            limits=httpx.Limits(
+                max_keepalive_connections=10,
+                max_connections=20,
+            ),
+            http2=True,
+            timeout=httpx.Timeout(120.0, connect=15.0),
+        )
+    return _client
+```
+
+将 `ollama.py` 和 `openai_compatible.py` 中每次新建 `httpx.AsyncClient(timeout=...)` 替换为 `get_http_client()`。
+
+#### V3：Prometheus 指标端点
+
+```python
+# app/core/metrics.py — 新文件
+import time
+from prometheus_client import Counter, Histogram, generate_latest, REGISTRY
+from fastapi import APIRouter, Response
+
+requests_total = Counter("gateway_requests_total", "Total requests", ["source", "model"])
+latency_histogram = Histogram("gateway_latency_seconds", "Request latency", ["phase"], buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0])
+
+metrics_router = APIRouter()
+
+@metrics_router.get("/metrics")
+async def metrics():
+    return Response(content=generate_latest(REGISTRY), media_type="text/plain")
+```
+
+#### V4：语义缓存优化
+
+```python
+# app/cache/store.py — 改进 _hash_key
+def _normalize_input(text: str) -> str:
+    """缓存 key 归一化：去标点、小写、去多余空格"""
+    text = text.lower().strip()
+    text = re.sub(r'[^\w\s]', '', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text
+```
+
+#### V5：性能基线
+
+```python
+# tests/benchmark/test_latency.py — 新文件
+"""性能基线测试。运行前需启动服务。"""
+import pytest
+import httpx
+
+BASE_URL = "http://localhost:8000"
+
+@pytest.mark.benchmark
+def test_chat_latency(benchmark):
+    """测量 /chat 端点的 p50/p95/p99 延迟"""
+    ...
+
+@pytest.mark.benchmark
+def test_health_latency(benchmark):
+    """/health 应在 5ms 内返回"""
+    ...
+```
+
+---
+
+## 七、性能风险与决策
+
+### 性能风险登记
+
+| # | 风险 | 概率 | 影响 | 等级 | 缓解措施 |
+|---|------|:----:|:----:|:----:|----------|
+| R9 | 云端 API 延迟波动（2s → 10s） | 中 | 高 | 🟡 | V2 连接池 + V1 监控告警；V3 暴露延迟分布 |
+| R10 | 缓存命中率低导致重复调用 | 中 | 中 | 🟡 | V4 语义缓存 + 缓存预热 |
+| R11 | 高并发下 SQLite 写锁争用 | 低 | 中 | 🟢 | 当前单 Worker 场景风险低；V3 可暴露写延迟 |
+| R12 | 性能退化无感知（改代码后变慢） | 中 | 中 | 🟡 | V5 基线测试 + CI 中自动对比 |
+
+---
+
+## 八、风险登记册（更新于 2026-05-18）
 
 | # | 风险 | 概率 | 影响 | 等级 | 缓解措施 | 状态 |
 |---|------|:----:|:----:|:----:|----------|:----:|
@@ -190,7 +441,7 @@ Week 1                        Week 2-4
 
 ---
 
-## 七、ADR（架构决策记录）
+## 九、ADR（架构决策记录）
 
 ### ADR-008: Phase 1 优先加固安全而非重构
 
@@ -237,18 +488,61 @@ Week 1                        Week 2-4
 
 **决策**: 线程级锁（Python threading.Lock）防同进程并发 + 文件级锁（fcntl.flock）防多进程并发。Windows 降级为 threading 锁。
 
+### ADR-013: 性能优先优化缓存与连接池，不换语言
+
+**日期**: 2026-05-18
+**状态**: 已采纳
+
+**背景**: 担心 Python 作为网关的效率瓶颈，考虑换 Go/Rust。
+
+**证据**: 实测延迟分布中，云端 API 网络调用占 80%，Python 自身处理 < 5%。
+
+**决策**: 
+1. 现阶段不换语言（ROI 不成正比）
+2. 优先优化缓存命中率（V4）、连接复用（V2）、可观察性（V1/V3）
+3. 建立性能基线（V5），每次改动后自动比对
+
+**触发换语言的条件**（以下全部满足时重新评估）：
+- 单机吞吐 > 1000 req/s
+- CPU profiling 显示 Python 处理占比 > 30%
+- 现有优化（缓存/连接池/异步）已用尽
+
+### ADR-014: 本地模型框架解耦合，不强绑定任何引擎
+
+**日期**: 2026-05-18
+**状态**: 已采纳（架构原则）
+
+**背景**: 网关同时支持 mock / ollama / openai-compatible 等多种本地模型 Provider。
+
+**决策**: Provider 架构保持开放，新增 Provider 只需实现 `BaseProvider`（`preprocess()` + `generate()`）两个方法。Docker 打包时 Ollama 作为可选 overlay，非必要组件。
+
+**约束**:
+- 网关核心不得直接 import 任何具体 Provider 实现（已通过 registry.py 满足）
+- `docker-compose.yml` 必须能在不启动 Ollama 的情况下独立运行（`LOCAL_MODEL_MODE=mock`）
+- 所有 Provider 共享 `get_http_client()` 全局连接池（V2 已完成）
+
+**当前支持的 Provider**:
+
+| Provider | 文件 | 本地/云端 |
+|----------|:----:|:---------:|
+| `mock` | `mock.py` | 开发测试 |
+| `ollama` | `ollama.py` | 本地 |
+| `openai-compatible` | `openai_compatible.py` | 本地+云端 |
+
 ---
 
-## 八、变更日志
+## 十、变更日志
 
 | 日期 | 版本 | 变更内容 |
 |:----:|:----:|----------|
-| 2026-05-18 | v1.1 | P0(7项)+P1(6项) 完成；ADR 状态更新；风险登记册更新；新增 ADR-011/012 |
+| 2026-05-18 | v1.5 | **O1 Docker 完成**（Dockerfile + docker-compose + ollama overlay + .dockerignore）；P3 进度 1/4 |
+| 2026-05-18 | v1.2 | P0(7项)+P1(6项)+D(3项)+G(1项) 完成；进度 17/33；Git 初始化章节更新 |
+| 2026-05-18 | v1.1 | ADR 状态更新；风险登记册更新；新增 ADR-011/012 |
 | 2026-05-18 | v1.0 | 初始版本：4 阶段、25 项任务、8 ADR、风险登记册、执行路线图 |
 
 ---
 
-## 九、Git 初始化和 GitHub 上传指引
+## 十一、Git 初始化和 GitHub 上传指引
 
 首次上传前需执行：
 

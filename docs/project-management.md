@@ -11,10 +11,10 @@
 
 | 指标 | 当前值 |
 |------|--------|
-| **当前阶段** | 工程化 P0/P1 完成，P2 待开始 |
-| **总体进度** | **100%** (MVP+Phase2+Phase3) + **100%** (P0+P1) |
-| **最近里程碑完成** | 2026-05-18 — P1 Foundation Hardening 完成 |
-| **下一里程碑目标** | P2 Architecture Evolution / P3 Platform Readiness |
+| **当前阶段** | 工程化 17/33 项完成，P2/P3/P4 待选 |
+| **总体进度** | **100%** (MVP+Phase2+Phase3) + 17/33 (工程化) |
+| **最近里程碑完成** | 2026-05-18 — P4 Performance Strategy 规划完成 + ADR-013 决策 |
+| **下一里程碑目标** | P2 Architecture Evolution / P3 Platform Readiness / P4 Performance |
 
 ### 当前关键风险（≤3 个）
 
@@ -296,6 +296,8 @@
 | 2026-05-13 | v2.0 | PM | Phase 2 B/C/D 完成；全部任务清空 (100%)；ADR-002 更新为规则可交互；ADR-007 新增模型能力标签；Phase 3 10 候选方向；DNS 风险关闭；Dashboard 100% |
 | 2026-05-12 | v1.3 | PM | T2 README 完成 (394 行)；新增下一步计划 + Phase 2 方向；重编号章节 |
 | 2026-05-12 | v1.2 | PM | M4 完成；Dashboard 更新至 98%；任务清单刷新为剩余 3 项；风险更新为 WSL DNS |
+| 2026-05-18 | v3.2 | ENG | **新增 P4 Performance & Observability 阶段**（5项）：性能架构声明、ADR-013 不换语言决策、延迟分布分析、性能风险登记 |
+| 2026-05-18 | v3.1 | ENG | **D1/D2/D3 数据卷清理** + **Git 初始化**：58文件推送到 GitHub（SSH）；残留文件删除；gitignore 严格化；sync脚本简化 |
 | 2026-05-18 | v3.0 | ENG | **P0+P1 工程化 13 项全部完成**：/health 端点、阶段日志、sync脚本、gitignore、Key哈希、Admin认证、异常分层、YAML锁、速率限制 |
 | 2026-05-12 | v1.1 | PM | M3 完成；新增 M4 里程碑；Dashboard 更新至 95%；任务清单刷新；ADR-006 多模型调度；风险列表更新 |
 | 2026-05-11 | v1.0 | PM | 初始版本：Dashboard / 里程碑 / 任务清单 / 5 ADR / 风险与等待项 |

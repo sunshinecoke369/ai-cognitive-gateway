@@ -1,0 +1,50 @@
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Runtime data (mounted as volumes)
+data/*.db
+data/api_keys.json
+data/gateway_config.yaml
+data/allowed_models.json
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Docs
+docs/
+README.md
+CHANGELOG.md
+LICENSE
+
+# Scripts
+sync_to_wsl.sh
+
+# Environment
+.env
+.env.example
+
+# Tests (not needed in production image)
+tests/
+.pytest_cache/
+pytest.ini

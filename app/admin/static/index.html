@@ -324,6 +324,19 @@ th { color: var(--muted); font-weight: 500; }
 
 <script>
 const API = '/admin';
+const ADMIN_KEY = 'admin:gw-console-2026';  // 可在 .env 中配置 ADMIN_API_KEY 覆盖
+const ADMIN_HEADERS = { 'Authorization': 'Bearer ' + ADMIN_KEY, 'Content-Type': 'application/json' };
+
+function apiFetch(url, opts) {
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  // 合并 Authorization 头，不覆盖业务层显式传入的 headers
+  if (!opts.headers['Authorization']) {
+    opts.headers['Authorization'] = 'Bearer ' + ADMIN_KEY;
+  }
+  return fetch(url, opts);
+}
+
 let currentTab = 'overview';
 
 function showToast(msg, type) {
@@ -361,7 +374,7 @@ document.querySelectorAll('nav button').forEach(function(b) {
 
 async function loadLocalConfig() {
   try {
-    var r = await fetch(API + '/config');
+    var r = await apiFetch(API + '/config');
     var cfg = await r.json();
     var l = cfg.local || {};
     document.getElementById('local-form').style.display = '';
@@ -377,7 +390,7 @@ async function loadLocalConfig() {
 
 async function loadLocalAllowedModels() {
   try {
-    var r = await fetch(API + '/allowed-models');
+    var r = await apiFetch(API + '/allowed-models');
     var data = await r.json();
     var allowed = data.local || [];
     var listDiv = document.getElementById('local-models-list');
@@ -395,10 +408,10 @@ async function refreshEngineModels() {
   var btn = document.getElementById('btn-refresh-models');
   btn.textContent = '加载中...'; btn.disabled = true;
   try {
-    var r = await fetch(API + '/engines/models?refresh=true');
+    var r = await apiFetch(API + '/engines/models?refresh=true');
     var data = await r.json();
     var engineModels = data.engine_models || [];
-    var existingData = await fetch(API + '/allowed-models').then(function(r){return r.json()});
+    var existingData = await apiFetch(API + '/allowed-models').then(function(r){return r.json()});
     var currentAllowed = new Set(existingData.local || []);
     if (engineModels.length > 0) {
       var added = 0;
@@ -409,7 +422,7 @@ async function refreshEngineModels() {
         }
       }
       if (added > 0) {
-        await fetch(API + '/allowed-models', {
+        await apiFetch(API + '/allowed-models', {
           method: 'PUT',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({local: Array.from(currentAllowed), cloud: existingData.cloud || []})
@@ -431,11 +444,11 @@ async function addLocalModel() {
   var name = inp.value.trim();
   if (!name) return;
   try {
-    var existingData = await fetch(API + '/allowed-models').then(function(r){return r.json()});
+    var existingData = await apiFetch(API + '/allowed-models').then(function(r){return r.json()});
     var allowed = existingData.local || [];
     if (allowed.indexOf(name) >= 0) { showToast('模型已在白名单中', 'error'); return; }
     allowed.push(name);
-    await fetch(API + '/allowed-models', {
+    await apiFetch(API + '/allowed-models', {
       method: 'PUT',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({local: allowed, cloud: existingData.cloud || []})
@@ -448,9 +461,9 @@ async function addLocalModel() {
 
 async function removeLocalModel(name) {
   try {
-    var existingData = await fetch(API + '/allowed-models').then(function(r){return r.json()});
+    var existingData = await apiFetch(API + '/allowed-models').then(function(r){return r.json()});
     var allowed = (existingData.local || []).filter(function(m) { return m !== name; });
-    await fetch(API + '/allowed-models', {
+    await apiFetch(API + '/allowed-models', {
       method: 'PUT',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({local: allowed, cloud: existingData.cloud || []})
@@ -473,7 +486,7 @@ function onLocalProviderChange() {
 
 async function loadCloudModels() {
   try {
-    var r = await fetch(API + '/config/cloud/models');
+    var r = await apiFetch(API + '/config/cloud/models');
     var data = await r.json();
     var models = data.models || {};
     var modelNames = Object.keys(models);
@@ -482,7 +495,7 @@ async function loadCloudModels() {
     sel.innerHTML = '';
     modelNames.forEach(function(n) { sel.innerHTML += '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>'; });
 
-    var defaultR = await fetch(API + '/config');
+    var defaultR = await apiFetch(API + '/config');
     var defaultData = await defaultR.json();
     var cloudCfg = defaultData.cloud || {};
     sel.value = cloudCfg.default || modelNames[0] || '';
@@ -545,7 +558,7 @@ function editCloudModel(name) {
 }
 
 function loadCloudModelsData() {
-  return fetch(API + '/config/cloud/models').then(function(r) { return r.json(); }).then(function(data) { return data.models || {}; });
+  return apiFetch(API + '/config/cloud/models').then(function(r) { return r.json(); }).then(function(data) { return data.models || {}; });
 }
 
 async function addCloudModel() {
@@ -599,7 +612,7 @@ async function setCloudDefault() {
   var val = document.getElementById('cloud-default-select').value;
   if (!val) return;
   try {
-    var r = await fetch(API + '/config/cloud/default?name=' + encodeURIComponent(val), { method: 'POST' });
+    var r = await apiFetch(API + '/config/cloud/default?name=' + encodeURIComponent(val), { method: 'POST' });
     if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
     showToast('默认模型已切换', 'success');
     await loadCloudModels();
@@ -608,7 +621,7 @@ async function setCloudDefault() {
 
 async function toggleCloudModel(name, enabled) {
   try {
-    var r = await fetch(API + '/config/cloud/models/' + encodeURIComponent(name), {
+    var r = await apiFetch(API + '/config/cloud/models/' + encodeURIComponent(name), {
       method: 'PUT', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name: name, enabled: enabled, provider: 'openai-compatible', api_url: '', api_key: '', timeout_seconds: 60, weight: 1, tags: ['general']})
     });
@@ -621,7 +634,7 @@ async function toggleCloudModel(name, enabled) {
 async function deleteCloudModel(name) {
   if (!confirm('确定删除模型 \"' + name + '\"？')) return;
   try {
-    var r = await fetch(API + '/config/cloud/models/' + encodeURIComponent(name), { method: 'DELETE' });
+    var r = await apiFetch(API + '/config/cloud/models/' + encodeURIComponent(name), { method: 'DELETE' });
     if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
     await loadCloudModels();
     showToast('模型已删除', 'warn');
@@ -632,7 +645,7 @@ async function loadCloudConfig() {}
 
 async function loadClients() {
   try {
-    var r = await fetch(API + '/clients?hours=24');
+    var r = await apiFetch(API + '/clients?hours=24');
     var data = await r.json();
     var tbody = document.querySelector('#clients-table tbody');
     tbody.innerHTML = '';
@@ -656,7 +669,7 @@ async function loadClients() {
 
 async function loadRules() {
   try {
-    var r = await fetch(API + '/rules');
+    var r = await apiFetch(API + '/rules');
     var data = await r.json();
     var tbody = document.querySelector('#rules-table tbody');
     tbody.innerHTML = '';
@@ -693,7 +706,7 @@ async function addRule() {
   var pattern = document.getElementById('rule-pattern').value.trim();
   if (!pattern) { showToast('请输入匹配模式', 'error'); return; }
   try {
-    var r = await fetch(API + '/rules', {
+    var r = await apiFetch(API + '/rules', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -713,7 +726,7 @@ async function addRule() {
 
 async function toggleRule(ruleId, enabled) {
   try {
-    var r = await fetch(API + '/rules/' + ruleId + '/toggle?enabled=' + enabled, { method: 'PUT' });
+    var r = await apiFetch(API + '/rules/' + ruleId + '/toggle?enabled=' + enabled, { method: 'PUT' });
     if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
     await loadRules();
     showToast(enabled ? '规则已启用' : '规则已禁用', 'success');
@@ -723,7 +736,7 @@ async function toggleRule(ruleId, enabled) {
 async function deleteRule(ruleId) {
   if (!confirm('确定删除规则 #' + ruleId + '？')) return;
   try {
-    var r = await fetch(API + '/rules/' + ruleId, { method: 'DELETE' });
+    var r = await apiFetch(API + '/rules/' + ruleId, { method: 'DELETE' });
     if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
     await loadRules();
     showToast('规则已删除', 'warn');
@@ -745,7 +758,7 @@ document.getElementById('local-form').addEventListener('submit', async function(
   data.timeout_seconds = parseInt(data.timeout_seconds) || undefined;
   data.max_tokens = parseInt(data.max_tokens) || undefined;
   try {
-    var r = await fetch(API + '/config/local', {
+    var r = await apiFetch(API + '/config/local', {
       method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
     });
     if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
@@ -755,7 +768,7 @@ document.getElementById('local-form').addEventListener('submit', async function(
 
 async function loadOverview() {
   try {
-    var r = await fetch(API + '/overview');
+    var r = await apiFetch(API + '/overview');
     var d = await r.json();
     var gi = d.gateway_info || {};
     document.getElementById('ov-api-base').textContent = gi.api_base || '-';
@@ -776,11 +789,11 @@ async function loadOverview() {
     document.getElementById('ov-danger').textContent = formatNum(uv.high_risk_flags);
     document.getElementById('ov-blocked').textContent = formatNum(uv.blocked_requests);
 
-    fetch(API + '/cache/stats').then(function(r){return r.json()}).then(function(cs){
+    apiFetch(API + '/cache/stats').then(function(r){return r.json()}).then(function(cs){
       document.getElementById('ov-cache-hits').textContent = formatNum(cs.total_entries || 0);
     }).catch(function(){});
 
-    fetch(API + '/feedback/stats').then(function(r){return r.json()}).then(function(fs){
+    apiFetch(API + '/feedback/stats').then(function(r){return r.json()}).then(function(fs){
       document.getElementById('ov-feedback').textContent = formatNum(fs.total || 0);
       document.getElementById('ov-feedback-pos').textContent = formatNum(fs.positive || 0);
       document.getElementById('ov-feedback-neg').textContent = formatNum(fs.negative || 0);
@@ -796,7 +809,7 @@ async function loadOverview() {
     document.getElementById('ov-local-timeout').textContent = lc.timeout_seconds || '-';
     document.getElementById('ov-cloud-timeout').textContent = cc.timeout_seconds || '-';
 
-    var rulesResp = await fetch(API + '/rules');
+    var rulesResp = await apiFetch(API + '/rules');
     var rulesData = await rulesResp.json();
     document.getElementById('ov-rules-count').textContent = (rulesData.rules || []).length;
     loadTokenChart();
@@ -805,7 +818,7 @@ async function loadOverview() {
 
 async function loadTokenChart() {
   try {
-    var r = await fetch(API + '/token-trend?hours=24');
+    var r = await apiFetch(API + '/token-trend?hours=24');
     var data = await r.json();
     var points = data.data || [];
     var chartDiv = document.getElementById('token-chart');
@@ -831,7 +844,7 @@ async function loadTokenChart() {
 
 async function loadApiKeys() {
   try {
-    var r = await fetch(API + '/api-keys');
+    var r = await apiFetch(API + '/api-keys');
     var data = await r.json();
     var tbody = document.querySelector('#key-table tbody');
     tbody.innerHTML = '';
@@ -868,7 +881,7 @@ async function createApiKey() {
   var alias = document.getElementById('key-alias-input').value.trim();
   if (!alias) { showToast('请输入别名', 'error'); return; }
   try {
-    var r = await fetch(API + '/api-keys', {
+    var r = await apiFetch(API + '/api-keys', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({alias: alias})
     });
@@ -901,7 +914,7 @@ async function copyKeyToClipboard() {
 async function deleteApiKey(prefix, hash) {
   if (!confirm('确定删除此 Key？所有使用此 Key 的客户端将无法连接。')) return;
   try {
-    var r = await fetch(API + '/api-keys?key_prefix=' + encodeURIComponent(prefix) + '&key_hash=' + encodeURIComponent(hash), { method: 'DELETE' });
+    var r = await apiFetch(API + '/api-keys?key_prefix=' + encodeURIComponent(prefix) + '&key_hash=' + encodeURIComponent(hash), { method: 'DELETE' });
     if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
     await loadApiKeys();
     showToast('Key 已删除', 'warn');
@@ -910,7 +923,7 @@ async function deleteApiKey(prefix, hash) {
 
 async function toggleApiKey(prefix, hash, enabled) {
   try {
-    var r = await fetch(API + '/api-keys/toggle?key_prefix=' + encodeURIComponent(prefix) + '&key_hash=' + encodeURIComponent(hash) + '&enabled=' + enabled, { method: 'POST' });
+    var r = await apiFetch(API + '/api-keys/toggle?key_prefix=' + encodeURIComponent(prefix) + '&key_hash=' + encodeURIComponent(hash) + '&enabled=' + enabled, { method: 'POST' });
     if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
     await loadApiKeys();
     showToast(enabled ? 'Key 已启用' : 'Key 已禁用', 'success');
@@ -1046,7 +1059,7 @@ function copyOvhVal(id) {
 
 async function loadCacheStats() {
   try {
-    var r = await fetch(API + '/cache/stats');
+    var r = await apiFetch(API + '/cache/stats');
     var data = await r.json();
     document.getElementById('cache-total').textContent = formatNum(data.total_entries || 0);
     document.getElementById('cache-ttl').textContent = (data.ttl_default || 3600) + 's';
@@ -1056,7 +1069,7 @@ async function loadCacheStats() {
 async function invalidateCache() {
   if (!confirm('确认清空全部缓存？所有缓存条目将被删除。')) return;
   try {
-    var r = await fetch(API + '/cache/invalidate', { method: 'POST' });
+    var r = await apiFetch(API + '/cache/invalidate', { method: 'POST' });
     var data = await r.json();
     showToast('已清除 ' + data.entries_removed + ' 条缓存', 'success');
     loadCacheStats();
@@ -1067,7 +1080,7 @@ async function invalidateModelCache() {
   var model = document.getElementById('cache-model-input').value.trim();
   if (!model) { showToast('请输入模型名', 'error'); return; }
   try {
-    var r = await fetch(API + '/cache/invalidate?model_name=' + encodeURIComponent(model), { method: 'POST' });
+    var r = await apiFetch(API + '/cache/invalidate?model_name=' + encodeURIComponent(model), { method: 'POST' });
     var data = await r.json();
     showToast('已清除模型 ' + model + ' 的 ' + data.entries_removed + ' 条缓存', 'success');
     loadCacheStats();
@@ -1076,7 +1089,7 @@ async function invalidateModelCache() {
 
 async function cleanupCache() {
   try {
-    await fetch(API + '/cache/cleanup', { method: 'POST' });
+    await apiFetch(API + '/cache/cleanup', { method: 'POST' });
     showToast('已清理过期缓存', 'success');
     loadCacheStats();
   } catch(e) { showToast('清理失败: ' + e.message, 'error'); }
@@ -1084,13 +1097,13 @@ async function cleanupCache() {
 
 async function loadFeedback() {
   try {
-    var statsR = await fetch(API + '/feedback/stats');
+    var statsR = await apiFetch(API + '/feedback/stats');
     var stats = await statsR.json();
     document.getElementById('fb-total').textContent = formatNum(stats.total || 0);
     document.getElementById('fb-positive').textContent = formatNum(stats.positive || 0);
     document.getElementById('fb-negative').textContent = formatNum(stats.negative || 0);
 
-    var r = await fetch(API + '/feedback?limit=50');
+    var r = await apiFetch(API + '/feedback?limit=50');
     var data = await r.json();
     var items = data.items || [];
     document.getElementById('fb-loading').style.display = 'none';

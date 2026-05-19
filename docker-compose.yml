@@ -1,0 +1,52 @@
+version: "3.8"
+
+# =============================================================================
+# AI Cognitive Gateway — Docker Compose（独立运行模式）
+#
+# 此配置仅启动网关容器，本地模型使用 mock 模式运行。
+# 不依赖任何外部服务，无 GPU 需求，适合快速体验和测试。
+#
+# 使用方式:
+#   docker compose up -d --build
+#
+# 如需启用 Ollama 本地预处理，叠加 overlay:
+#   docker compose -f docker-compose.yml -f docker-compose.ollama.yml up -d --build
+# =============================================================================
+
+services:
+  gateway:
+    build: .
+    image: ai-cognitive-gateway:latest
+    container_name: ai-gateway
+    ports:
+      - "${GATEWAY_PORT:-8000}:8000"
+    environment:
+      # 运行模式: mock（无本地模型）/ ollama（本地）
+      - LOCAL_MODEL_MODE=${LOCAL_MODEL_MODE:-mock}
+
+      # 云端模型配置（通过控制台配置，也可通过环境变量预设）
+      - DEFAULT_CLOUD_MODEL=${DEFAULT_CLOUD_MODEL:-deepseek-chat}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.deepseek.com/v1}
+
+      # 服务器配置
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+
+      # Admin 认证密钥
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-admin:gw-console-2026}
+    volumes:
+      - gateway_data:/app/data
+      - gateway_logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  gateway_data:
+  gateway_logs:

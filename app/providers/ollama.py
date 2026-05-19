@@ -6,6 +6,7 @@ import re
 import httpx
 
 from app.providers.base import BaseProvider, LocalModelOutput, CloudModelResponse
+from app.providers.client import get_http_client
 from app.admin.config_manager import resolve_runtime_local_config
 from app.core.logging import logger
 
@@ -22,11 +23,11 @@ class OllamaProvider(BaseProvider):
             "keep_alive": keep_alive,
         }
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                resp = await client.post(url, json=payload)
-                resp.raise_for_status()
-                data = resp.json()
-                return data.get("message", {}).get("content", "")
+            client = get_http_client()
+            resp = await client.post(url, json=payload, timeout=timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("message", {}).get("content", "")
         except httpx.TimeoutException:
             logger.warning("ollama chat timed out", extra={"model": model_name, "timeout": timeout})
             return "[TIMEOUT]"
@@ -52,11 +53,11 @@ class OllamaProvider(BaseProvider):
             "keep_alive": keep_alive,
         }
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                resp = await client.post(url, json=payload)
-                resp.raise_for_status()
-                data = resp.json()
-                return data.get("response", "")
+            client = get_http_client()
+            resp = await client.post(url, json=payload, timeout=timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("response", "")
         except httpx.TimeoutException:
             logger.warning("ollama generate timed out", extra={"model": model_name, "timeout": timeout})
             return "[TIMEOUT]"

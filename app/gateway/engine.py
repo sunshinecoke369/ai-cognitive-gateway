@@ -96,6 +96,14 @@ async def process_request(
 ) -> GatewayResponse:
     request_id = str(uuid.uuid4())
     t_start = time.perf_counter()
+    _pt = t_start
+
+    def _log_phase_timing(name: str):
+        nonlocal _pt
+        now = time.perf_counter()
+        elapsed = (now - _pt) * 1000
+        _pt = now
+        logger.info("perf:phase_timing", extra={"phase": name, "latency_ms": round(elapsed, 2), "request_id": request_id})
 
     has_messages = messages is not None and len(messages) > 0
     input_text = user_input
@@ -194,6 +202,7 @@ async def process_request(
     judge_result = adjudicate(police_result)
 
     if judge_result["verdict"] == "blocked":
+        _log_phase_timing("governance")
         total_latency = (time.perf_counter() - t_start) * 1000
         logger.warning("request blocked by judge", extra={"request_id": request_id, "verdict": judge_result})
         return GatewayResponse(
@@ -214,18 +223,21 @@ async def process_request(
             cloud_model_name=cloud_model_name,
         )
 
+    _log_phase_timing("governance")
     local_provider = get_local_provider()
     resolved_local_model = local_model_name or ""
     local_output = await local_provider.preprocess(input_text, model_name=resolved_local_model or None, messages=messages)
 
     local_degraded = local_output.degraded
     logger.info("phase:local_preprocess", extra={"request_id": request_id, "local_model": local_model_name or "default", "degraded": local_degraded, "intent": local_output.intent_primary, "confidence": local_output.intent_confidence})
+    _log_phase_timing("local_preprocess")
 
     effective_input = local_output.filtered_text if not local_degraded else input_text
 
     memory_context = retrieve_summary_context(layer="user")
 
     logger.info("phase:cloud_prompt_build", extra={"request_id": request_id, "input_length": len(effective_input), "degraded": local_degraded, "intent": local_output.intent_primary})
+    _log_phase_timing("prompt_build")
 
     cloud_prompt = build_cloud_prompt(
         user_input=effective_input,
@@ -258,6 +270,7 @@ async def process_request(
         "primary_model": resolved_cloud_model,
         "fallback_chain": [m["name"] for m in fallback_chain],
     })
+    _log_phase_timing("cloud_schedule")
 
     cloud_provider = get_cloud_provider()
     cloud_output = None
@@ -265,6 +278,8 @@ async def process_request(
         fallback_name = fallback_model["name"]
         resolved_cloud_model = fallback_name
         logger.info("phase:cloud_generate", extra={"request_id": request_id, "model": fallback_name, "attempt": idx + 1})
+        if idx == 0:
+            _log_phase_timing("cloud_generate")
         logger.info("cloud generation attempt", extra={"request_id": request_id, "model": fallback_name, "attempt": idx + 1})
         cloud_output = await cloud_provider.generate(
             enriched_prompt=cloud_prompt,
@@ -319,6 +334,7 @@ async def process_request(
         total_latency=total_latency,
     )
 
+    _log_phase_timing("persist")
     logger.info("phase:completed", extra={
         "request_id": request_id,
         "latency_ms": total_latency,
@@ -374,6 +390,14 @@ async def process_request_stream(
 ):
     request_id = str(uuid.uuid4())
     t_start = time.perf_counter()
+    _pt = t_start
+
+    def _log_phase_timing(name: str):
+        nonlocal _pt
+        now = time.perf_counter()
+        elapsed = (now - _pt) * 1000
+        _pt = now
+        logger.info("perf:phase_timing", extra={"phase": name, "latency_ms": round(elapsed, 2), "request_id": request_id})
 
     has_messages = messages is not None and len(messages) > 0
     input_text = user_input
@@ -422,11 +446,13 @@ async def process_request_stream(
     judge_result = adjudicate(police_result)
 
     if judge_result["verdict"] == "blocked":
+        _log_phase_timing("governance")
         logger.warning("streaming request blocked by judge", extra={"request_id": request_id, "verdict": judge_result})
         yield f"data: {json.dumps({'error': '请求已被安全策略拦截', 'request_id': request_id})}\n\n"
         yield "data: [DONE]\n\n"
         return
 
+    _log_phase_timing("governance")
     logger.info("phase:local_preprocess", extra={"request_id": request_id, "local_model": local_model_name or "default", "input_length": len(input_text)})
 
     local_provider = get_local_provider()
@@ -435,10 +461,12 @@ async def process_request_stream(
 
     local_degraded = local_output.degraded
     effective_input = local_output.filtered_text if not local_degraded else input_text
+    _log_phase_timing("local_preprocess")
 
     memory_context = retrieve_summary_context(layer="user")
 
     logger.info("phase:cloud_prompt_build", extra={"request_id": request_id, "degraded": local_degraded, "intent": local_output.intent_primary})
+    _log_phase_timing("prompt_build")
 
     cloud_prompt = build_cloud_prompt(
         user_input=effective_input,
@@ -466,11 +494,13 @@ async def process_request_stream(
         "request_id": request_id,
         "primary_model": resolved_cloud_model,
     })
+    _log_phase_timing("cloud_schedule")
 
     cloud_provider = get_cloud_provider()
     collected_text = ""
 
     logger.info("phase:cloud_generate", extra={"request_id": request_id, "model": resolved_cloud_model, "streaming": True})
+    _log_phase_timing("cloud_generate")
 
     async for text_chunk in cloud_provider.generate_stream(
         enriched_prompt=cloud_prompt,
@@ -529,6 +559,7 @@ async def process_request_stream(
         total_latency=total_latency,
     )
 
+    _log_phase_timing("persist")
     logger.info("phase:completed", extra={
         "request_id": request_id,
         "latency_ms": total_latency,
