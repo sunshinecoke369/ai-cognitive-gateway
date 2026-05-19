@@ -6,6 +6,7 @@ import re
 from app.providers.base import BaseProvider, LocalModelOutput, CloudModelResponse
 from app.core.config import settings
 from app.core.logging import logger
+from app.tokenflow.counter import count_tokens
 
 
 class MockProvider(BaseProvider):
@@ -93,8 +94,8 @@ class MockProvider(BaseProvider):
             response_text += f" Context: {context['memory'][:100]}..."
 
         latency = (time.perf_counter() - t0) * 1000
-        tokens_in = len(enriched_prompt.split())
-        tokens_out = len(response_text.split())
+        tokens_in = count_tokens(enriched_prompt)
+        tokens_out = count_tokens(response_text)
 
         return CloudModelResponse(
             text=response_text,

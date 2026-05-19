@@ -12,6 +12,7 @@ from app.providers.base import has_images_in_messages
 from app.admin.router import resolve_client_from_header
 from app.core.config import settings
 from app.core.logging import logger
+from app.tokenflow.counter import count_tokens
 
 openai_router = APIRouter(prefix="/v1")
 
@@ -48,7 +49,7 @@ def normalize_messages_for_model(messages: list[dict], model_name: str) -> list[
 
 def count_content_tokens(content: str | list[dict]) -> int:
     text = extract_text_content(content)
-    return len(text.split()) if text.strip() else 0
+    return count_tokens(text) if text.strip() else 0
 
 
 class ChatMessage(BaseModel):
@@ -206,7 +207,7 @@ async def chat_completions(req: ChatCompletionRequest, authorization: str | None
     )
 
     prompt_tokens = sum(count_content_tokens(m.get("content", "")) for m in messages)
-    completion_tokens = len(content.split())
+    completion_tokens = count_tokens(content)
     return {
         "id": result.request_id,
         "object": "chat.completion",
@@ -391,8 +392,8 @@ async def _call_cloud_completion(prompt: str, model_name: str, suffix: str | Non
             raw = choices[0].get("message", {}).get("content", "") if choices else ""
             completion = _extract_fim_completion(raw, prompt, suffix)
             usage = data.get("usage", {})
-            tokens_in = usage.get("prompt_tokens", len(prompt.split()))
-            tokens_out = usage.get("completion_tokens", len(completion.split()))
+            tokens_in = usage.get("prompt_tokens", count_tokens(prompt))
+            tokens_out = usage.get("completion_tokens", count_tokens(completion))
             return completion, tokens_in, tokens_out
     except Exception as e:
         logger.error("cloud completion failed", extra={"model": model_name, "error": str(e)})
@@ -508,7 +509,7 @@ async def anthropic_messages(req: AnthropicMessagesRequest, authorization: str |
     answer_text = result.to_dict().get("answer", {}).get("text", "")
 
     prompt_tokens = sum(count_content_tokens(m.get("content", "")) for m in messages)
-    completion_tokens = len(answer_text.split())
+    completion_tokens = count_tokens(answer_text)
 
     return {
         "id": result.request_id,

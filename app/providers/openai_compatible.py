@@ -7,6 +7,7 @@ import httpx
 from app.providers.base import BaseProvider, LocalModelOutput, CloudModelResponse
 from app.providers.client import get_http_client
 from app.admin.config_manager import resolve_runtime_cloud_config, get_cloud_models
+from app.tokenflow.counter import count_tokens
 from app.core.logging import logger
 
 
@@ -156,8 +157,8 @@ class OpenAICompatibleProvider(BaseProvider):
         if text is None:
             text = f"[{used_model}] Request failed or timed out"
 
-        tokens_in = len(enriched_prompt.split())
-        tokens_out = len(text.split())
+        tokens_in = count_tokens(enriched_prompt)
+        tokens_out = count_tokens(text) if text else 0
 
         return CloudModelResponse(
             text=text,
@@ -205,7 +206,7 @@ class OpenAICompatibleProvider(BaseProvider):
 
         logger.info("openai-compatible streaming started", extra={"model": used_model, "has_messages": messages is not None})
 
-        tokens_in = len(enriched_prompt.split())
+        tokens_in = count_tokens(enriched_prompt)
         tokens_out = 0
 
         try:

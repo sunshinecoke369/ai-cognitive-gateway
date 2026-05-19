@@ -13,6 +13,7 @@ from app.governance.engine import police_check, police_check_messages
 from app.governance.judge import adjudicate
 from app.memory.store import save_entry, retrieve_summary_context
 from app.tokenflow.tracker import record_tokens
+from app.tokenflow.counter import count_tokens
 from app.prompts.templates import build_cloud_prompt
 from app.core.database import get_connection
 from app.gateway.scheduler import pick_cloud_model, get_fallback_chain
@@ -249,7 +250,7 @@ async def process_request(
         confidence=local_output.intent_confidence,
     )
 
-    record_tokens(request_id, "local_preprocess", tokens_out=len(local_output.summary_detailed.split()))
+    record_tokens(request_id, "local_preprocess", tokens_out=count_tokens(local_output.summary_detailed))
 
     scheduled = pick_cloud_model(local_output, messages=messages)
     fallback_chain = get_fallback_chain(local_output, messages=messages)
@@ -478,7 +479,7 @@ async def process_request_stream(
         confidence=local_output.intent_confidence,
     )
 
-    record_tokens(request_id, "local_preprocess", tokens_out=len(local_output.summary_detailed.split()))
+    record_tokens(request_id, "local_preprocess", tokens_out=count_tokens(local_output.summary_detailed))
 
     resolved_cloud = cloud_model_name or resolve_cloud_model()
     scheduled = pick_cloud_model(local_output, messages=messages)
@@ -515,8 +516,8 @@ async def process_request_stream(
     record_tokens(
         request_id,
         "cloud_generation",
-        tokens_in=len(cloud_prompt.split()),
-        tokens_out=len(collected_text.split()),
+        tokens_in=count_tokens(cloud_prompt),
+        tokens_out=count_tokens(collected_text),
     )
 
     memory_content = ""
@@ -544,8 +545,8 @@ async def process_request_stream(
         text=collected_text,
         model_used=resolved_cloud_model,
         latency_ms=round(total_latency, 2),
-        tokens_in=len(cloud_prompt.split()),
-        tokens_out=len(collected_text.split()),
+        tokens_in=count_tokens(cloud_prompt),
+        tokens_out=count_tokens(collected_text),
     )
 
     _persist_request(

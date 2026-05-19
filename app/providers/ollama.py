@@ -8,6 +8,7 @@ import httpx
 from app.providers.base import BaseProvider, LocalModelOutput, CloudModelResponse
 from app.providers.client import get_http_client
 from app.admin.config_manager import resolve_runtime_local_config
+from app.tokenflow.counter import count_tokens
 from app.core.logging import logger
 
 
@@ -192,8 +193,8 @@ class OllamaProvider(BaseProvider):
         if text is None:
             text = f"[OLLAMA ERROR] Failed to get response from {used_model}"
 
-        tokens_in = len(enriched_prompt.split())
-        tokens_out = len(text.split())
+        tokens_in = count_tokens(enriched_prompt)
+        tokens_out = count_tokens(text) if text else 0
 
         return CloudModelResponse(
             text=text,
