@@ -1,6 +1,6 @@
 # AI Cognitive Gateway — 工程化进度方案
 
-> **文档版本**: v1.6
+> **文档版本**: v1.7
 > **创建日期**: 2026-05-18
 > **最后更新**: 2026-05-18
 > **P0 状态**: ✅ 已完成（7 项）
@@ -72,10 +72,10 @@ git push
 | **P1** | Foundation Hardening | 6 项 | ✅ 已完成 | 5 天 | 1 天 |
 | **D** | 数据卷清理 | 3 项 | ✅ 已完成 | — | — |
 | **G** | Git 初始化 + GitHub | 1 项 | ✅ 已完成 | 30min | 30min |
-| **P2** | Architecture Evolution | 6 项 | ✅ A1 完成（1/6） | 8 天 | — |
-| **P3** | Platform Readiness | 4 项 | ✅ **全部完成**（O1/O2/O3/O4） | 5 天 | — |
-| **P4** | Performance & Observability | 5 项 | ✅ V1/V2/V4 完成 | 6 天 | — |
-| | **合计** | **32 项** | **27/32** | **26 天** | **2 天** |
+| **P2** | Architecture Evolution | 6 项 | ✅ **A1/A3/A6 完成（3/6）** | 8 天 | — |
+| **P3** | Platform Readiness | 4 项 | ✅ **全部完成** | 5 天 | — |
+| **P4** | Performance & Observability | 5 项 | ✅ **全部完成** | 6 天 | — |
+| | **合计** | **32 项** | **30/32** | **26 天** | **2 天** |
 
 ```
 Week 1                        Week 2-4                    Week 5

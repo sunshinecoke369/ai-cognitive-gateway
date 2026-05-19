@@ -45,6 +45,9 @@ def register_capability(
     default_state: CapabilityState = CapabilityState.DENIED,
     requires_human_approval: bool = True,
 ):
+    if name in _CAPABILITY_REGISTRY:
+        logger.debug("capability already registered, skipping", extra={"capability": name})
+        return
     cap = Capability(
         name=name,
         description=description,

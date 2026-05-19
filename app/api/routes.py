@@ -24,8 +24,8 @@ from app.core.config import settings
 
 
 def _init_doctrine():
-    from app.core.doctrine import _init_default_capabilities
-    _init_default_capabilities()
+    from app.governance.policy_init import init_policies
+    init_policies()
 
 
 @asynccontextmanager

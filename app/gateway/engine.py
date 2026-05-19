@@ -274,6 +274,38 @@ def _write_cache(input_text: str, cloud_output: CloudModelResponse,
     )
 
 
+# ─── 子函数：语义注入检测 ─────────────────────────────────────────
+
+async def _run_semantic_check(user_input: str, local_provider,
+                              police_result: dict, local_output) -> GatewayResponse | None:
+    """低置信度输入触发语义检测，检测到注入则返回 blocked 响应。"""
+    from app.governance.semantic import semantic_check
+
+    sem_result = await semantic_check(user_input, local_provider, police_result, local_output)
+    if not sem_result.get("is_injection"):
+        return None
+
+    total_latency = 0  # 时序在后面汇总
+    logger.warning("semantic check blocked request", extra=sem_result)
+    return GatewayResponse(
+        request_id="",
+        answer_text="请求已被安全策略拦截（语义检测）",
+        answer_structured={"blocked_reason": [sem_result.get("type", "injection")], "semantic": sem_result},
+        used_model="none",
+        latency_ms=0,
+        blocked=True,
+        rules_applied=[],
+        should_write_memory=False,
+        memory_content="",
+        local_model_output=None,
+        cloud_model_response=None,
+        judge_verdict="blocked",
+        override_active=False,
+        local_model_name="",
+        cloud_model_name="",
+    )
+
+
 # ─── 主处理函数 ─────────────────────────────────────────────────────
 
 async def process_request(
@@ -341,6 +373,12 @@ async def process_request(
     )
     logger.info("phase:local_preprocess", extra={"request_id": request_id, "model": local_model_name or "default", "degraded": local_degraded, "intent": local_output.intent_primary, "confidence": local_output.intent_confidence})
     _log_phase_timing("local_preprocess")
+
+    # ── 阶段 3.5：语义注入检测（低置信度时触发） ──
+    sem_result = await _run_semantic_check(input_text, local_provider, police_result, local_output)
+    if sem_result:
+        _dec_gauge()
+        return sem_result
 
     logger.info("phase:cloud_prompt_build", extra={"request_id": request_id, "input_length": len(effective_input), "degraded": local_degraded, "intent": local_output.intent_primary})
     _log_phase_timing("prompt_build")
