@@ -18,6 +18,7 @@ from app.providers.model_validator import resolve_local_model, resolve_cloud_mod
 from app.admin.router import admin_router, resolve_client_from_header
 from app.admin.auth import AdminAuthMiddleware
 from app.core.ratelimit import RateLimitMiddleware
+from app.core.metrics import metrics_router
 from app.api.openai_compat import openai_router
 from app.core.config import settings
 
@@ -262,6 +263,7 @@ async def admin_console():
 app.include_router(router)
 app.include_router(admin_router)
 app.include_router(openai_router)
+app.include_router(metrics_router)
 
 
 @app.get("/health")

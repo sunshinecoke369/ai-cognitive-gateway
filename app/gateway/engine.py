@@ -6,6 +6,7 @@ import asyncio
 from app.core.logging import logger
 from app.core.doctrine import is_override_active, is_shutdown_requested, check_capability
 from app.core.audit import write_governance_decision, write_model_routing, write_memory_operation, write_entry, write_step
+from app.core.metrics import in_flight_gauge, requests_total, cache_hits, governance_blocked, latency_histogram, HAS_PROMETHEUS
 from app.providers.registry import get_local_provider, get_cloud_provider
 from app.providers.base import LocalModelOutput, CloudModelResponse, extract_text_from_messages
 from app.providers.model_validator import resolve_cloud_model
@@ -99,6 +100,8 @@ def _check_cache(request_id: str, input_text: str, cloud_model: str,
         return None
     cached_latency = (time.perf_counter() - t_start) * 1000
     logger.info("cache hit, returning cached response", extra={"request_id": request_id, "model": resolved_cloud})
+    if HAS_PROMETHEUS:
+        cache_hits.inc()
     return GatewayResponse(
         request_id=request_id,
         answer_text=cached.get("answer_text", ""),
@@ -174,6 +177,8 @@ def _run_governance_blocked(request_id: str, input_text: str,
         log_phase_timing("governance")
         total_latency = (time.perf_counter() - t_start) * 1000
         logger.warning("request blocked by judge", extra={"request_id": request_id, "verdict": judge_result})
+        if HAS_PROMETHEUS:
+            governance_blocked.labels(reason=judge_result.get("reason", "unknown")).inc()
         return GatewayResponse(
             request_id=request_id,
             answer_text="请求已被安全策略拦截",
@@ -291,6 +296,8 @@ async def process_request(
         elapsed = (now - _pt) * 1000
         _pt = now
         logger.info("perf:phase_timing", extra={"phase": name, "latency_ms": round(elapsed, 2), "request_id": request_id})
+        if HAS_PROMETHEUS:
+            latency_histogram.labels(phase=name).observe(elapsed / 1000.0)
 
     has_messages = messages is not None and len(messages) > 0
     input_text = user_input
@@ -306,18 +313,25 @@ async def process_request(
 
     # ── 阶段 0：缓存检查 ──
     resolved_cloud = cloud_model_name or resolve_cloud_model()
+    def _dec_gauge():
+        if HAS_PROMETHEUS:
+            in_flight_gauge.dec()
+
     cached_resp = _check_cache(request_id, input_text, resolved_cloud, messages, t_start, skip_cache, local_model_name, resolved_cloud)
     if cached_resp:
+        _dec_gauge()
         return cached_resp
 
     # ── 阶段 1：前置守卫 ──
     guard_blocked = _check_guards_blocked(request_id, local_model_name, cloud_model_name)
     if guard_blocked:
+        _dec_gauge()
         return guard_blocked
 
     # ── 阶段 2：治理检查 ──
     governance_result = _run_governance_blocked(request_id, input_text, messages, has_messages, t_start, _log_phase_timing, session_id, client_id, request_source)
     if isinstance(governance_result, GatewayResponse):
+        _dec_gauge()
         return governance_result
     police_result, judge_result, override_active = governance_result
 
@@ -383,6 +397,13 @@ async def process_request(
 
     _write_cache(input_text, cloud_output, resolved_cloud_model, messages, skip_cache)
 
+    if HAS_PROMETHEUS:
+        requests_total.labels(
+            source=request_source or "unknown",
+            model=resolved_cloud_model,
+            status="ok" if not cloud_output.text.startswith("[") else "error",
+        ).inc()
+
     return gateway_response
 
 
@@ -399,12 +420,17 @@ async def process_request_stream(
     t_start = time.perf_counter()
     _pt = t_start
 
+    if HAS_PROMETHEUS:
+        in_flight_gauge.inc()
+
     def _log_phase_timing(name: str):
         nonlocal _pt
         now = time.perf_counter()
         elapsed = (now - _pt) * 1000
         _pt = now
         logger.info("perf:phase_timing", extra={"phase": name, "latency_ms": round(elapsed, 2), "request_id": request_id})
+        if HAS_PROMETHEUS:
+            latency_histogram.labels(phase=name).observe(elapsed / 1000.0)
 
     has_messages = messages is not None and len(messages) > 0
     input_text = user_input
