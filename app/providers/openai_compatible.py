@@ -1,3 +1,4 @@
+import json
 import time
 import asyncio
 import re
@@ -9,6 +10,21 @@ from app.providers.client import get_http_client
 from app.admin.config_manager import resolve_runtime_cloud_config, get_cloud_models
 from app.tokenflow.counter import count_tokens
 from app.core.logging import logger
+
+
+async def list_openai_compat_models(api_url: str, timeout: int = 10) -> list[dict]:
+    """查询 OpenAI 兼容 API 的模型列表。"""
+    url = api_url.rstrip("/") + "/v1/models"
+    try:
+        client = get_http_client()
+        resp = await client.get(url, timeout=timeout)
+        resp.raise_for_status()
+        data = resp.json()
+        items = data.get("data", [])
+        return [{"id": m.get("id", "")} for m in items]
+    except Exception as e:
+        logger.warning("failed to list vllm/openai-compat models", extra={"url": url, "error": str(e)})
+        return []
 
 
 class OpenAICompatibleProvider(BaseProvider):
@@ -213,7 +229,7 @@ class OpenAICompatibleProvider(BaseProvider):
             client = get_http_client()
             async with client.stream("POST", url, json=payload, headers=headers, timeout=httpx.Timeout(timeout, connect=15.0)) as resp:
                 resp.raise_for_status()
-                    async for line in resp.aiter_lines():
+                async for line in resp.aiter_lines():
                         if not line or not line.startswith("data:"):
                             continue
                         raw = line.removeprefix("data:").strip()

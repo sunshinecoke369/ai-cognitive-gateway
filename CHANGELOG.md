@@ -1,6 +1,24 @@
 # Changelog
 
-## v1.4.0 — 2026-05-18 — O1: Docker Packaging
+## v1.4.0 — 2026-05-19 — P3 Complete
+
+### Added
+- `Dockerfile` — Python 3.12-slim 基础镜像，含 healthcheck
+- `docker-compose.yml` — 独立运行网关（mock 模式），零外部依赖
+- `docker-compose.ollama.yml` — 可选 Ollama overlay，nvidia GPU 支持
+- `.dockerignore` — 排除 __pycache__/ .venv/ data/ logs/ 等
+- `deploy/logrotate.conf` — 管理 3 个日志文件（7-90 天轮转）
+- `pyproject.toml` — 标准 Python 项目元数据，`pip install -e .` 支持
+- CORSMiddleware — 控制台跨域访问支持
+
+### Fixed
+- `openai_compatible.py` — 修复缺 `import json` 导致的 `NameError`
+- `openai_compatible.py` — 修复 `generate_stream` `IndentationError`
+
+### Infrastructure
+- P3 全部完成：O1(Docker) + O2(logrotate) + O3(pyproject.toml) + O4(CORS)
+- 可靠性检查：health ✅ / chat ✅ / phase timing ✅ / admin auth ✅ / tiktoken ✅
+- Git: 4 commits → GitHub（8126a0a → 7fc4672）
 
 ### Added
 - `Dockerfile` — Python 3.12-slim 基础镜像，含 healthcheck

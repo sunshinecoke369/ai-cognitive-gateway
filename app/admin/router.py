@@ -25,7 +25,7 @@ from app.core.config import settings
 from app.core.logging import logger
 from app.core.database import get_connection
 from app.providers.model_validator import get_allowed_local_models, get_allowed_cloud_models
-from app.engines import list_engine_models, SUPPORTED_ENGINES
+from app.providers.registry import list_engine_models, SUPPORTED_ENGINES
 
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
 

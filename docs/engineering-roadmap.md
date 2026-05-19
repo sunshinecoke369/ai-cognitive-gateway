@@ -1,6 +1,6 @@
 # AI Cognitive Gateway — 工程化进度方案
 
-> **文档版本**: v1.5
+> **文档版本**: v1.6
 > **创建日期**: 2026-05-18
 > **最后更新**: 2026-05-18
 > **P0 状态**: ✅ 已完成（7 项）
@@ -72,10 +72,10 @@ git push
 | **P1** | Foundation Hardening | 6 项 | ✅ 已完成 | 5 天 | 1 天 |
 | **D** | 数据卷清理 | 3 项 | ✅ 已完成 | — | — |
 | **G** | Git 初始化 + GitHub | 1 项 | ✅ 已完成 | 30min | 30min |
-| **P2** | Architecture Evolution | 6 项 | ⏳ 待开始 | 8 天 | — |
-| **P3** | Platform Readiness | 4 项 | ✅ O1 完成（1/4） | 5 天 | — |
+| **P2** | Architecture Evolution | 6 项 | ✅ A1 完成（1/6） | 8 天 | — |
+| **P3** | Platform Readiness | 4 项 | ✅ **全部完成**（O1/O2/O3/O4） | 5 天 | — |
 | **P4** | Performance & Observability | 5 项 | ✅ V1/V2/V4 完成 | 6 天 | — |
-| | **合计** | **32 项** | **20/32** | **26 天** | **2 天** |
+| | **合计** | **32 项** | **27/32** | **26 天** | **2 天** |
 
 ```
 Week 1                        Week 2-4                    Week 5
@@ -144,16 +144,17 @@ Week 1                        Week 2-4                    Week 5
 
 ---
 
-## 四、Phase 2 — Architecture Evolution（待开始）
+## 四、Phase 2 — Architecture Evolution（进行中）
 
 > **目标**: 完成核心架构优化。
 > **前提**: P1 全部完成。
+> **进度**: ✅ A1 process_request 拆分完成（5 子函数）
 
 ### 任务清单
 
 | # | 任务 | 类型 | 负责模块 | 预估工时 | 依赖 |
 |---|------|:----:|----------|:--------:|:----:|
-| A1 | `process_request` 函数拆分 | 重构 | `app/gateway/engine.py` | 6h | — |
+| A1 | `process_request` 函数拆分 | 重构 | `app/gateway/engine.py` | 6h | — | ✅ |
 | A2 | Legislature 层实现 | 新模块 | `app/governance/legislature.py` (新) | 8h | — |
 | A3 | Memory 分层扩展 | 增强 | `app/memory/store.py` | 6h | — |
 | A4 | Token 计数改用 tiktoken | 增强 | `app/providers/base.py`, `engine.py` | 4h | — |
@@ -170,7 +171,7 @@ Week 1                        Week 2-4                    Week 5
 
 > **目标**: 补齐可运维性短板。
 > **前提**: P1 全部完成。P3 与 P2 / P4 可并行。
-> **进度**: ✅ O1 Docker | ⏳ O2 日志轮转 / O3 pyproject.toml / O4 CORS
+> **进度**: ✅ **全部完成（O1/O2/O3/O4）**
 
 ### 架构原则：Provider 解耦合
 
@@ -535,7 +536,7 @@ def test_health_latency(benchmark):
 
 | 日期 | 版本 | 变更内容 |
 |:----:|:----:|----------|
-| 2026-05-18 | v1.5 | **O1 Docker 完成**（Dockerfile + docker-compose + ollama overlay + .dockerignore）；P3 进度 1/4 |
+| 2026-05-19 | v1.6 | **P3 全部完成**（O1/O2/O3/O4）；P4 进度 3/5；可用性检查通过 |
 | 2026-05-18 | v1.2 | P0(7项)+P1(6项)+D(3项)+G(1项) 完成；进度 17/33；Git 初始化章节更新 |
 | 2026-05-18 | v1.1 | ADR 状态更新；风险登记册更新；新增 ADR-011/012 |
 | 2026-05-18 | v1.0 | 初始版本：4 阶段、25 项任务、8 ADR、风险登记册、执行路线图 |
